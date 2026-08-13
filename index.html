@@ -440,6 +440,83 @@ input,select,button{touch-action:manipulation}
  #rankingPeriod{font-size:12px}
 }
 </style>
+
+<style id="efan-v17-quarter-mobile-fix">
+/* Fix quarterly SA comparison on phones: keep the table intact and horizontally scrollable. */
+#saReports,
+#saReports .quarter-card,
+#saReports .quarter-table{
+  min-width:0!important;
+}
+#saReports .quarter-table{
+  width:100%!important;
+  max-width:100%!important;
+  overflow-x:auto!important;
+  overflow-y:hidden!important;
+  -webkit-overflow-scrolling:touch!important;
+  overscroll-behavior-x:contain!important;
+  display:block!important;
+}
+#saReports .quarter-table table{
+  display:table!important;
+  width:max-content!important;
+  min-width:720px!important;
+  max-width:none!important;
+  table-layout:auto!important;
+  border-collapse:collapse!important;
+}
+#saReports .quarter-table thead{display:table-header-group!important}
+#saReports .quarter-table tbody{display:table-row-group!important}
+#saReports .quarter-table tr{display:table-row!important}
+#saReports .quarter-table th,
+#saReports .quarter-table td{
+  display:table-cell!important;
+  position:static!important;
+  float:none!important;
+  white-space:normal!important;
+  word-break:normal!important;
+  overflow-wrap:break-word!important;
+  vertical-align:top!important;
+  padding:9px 10px!important;
+}
+#saReports .quarter-table th:first-child,
+#saReports .quarter-table td:first-child{
+  min-width:190px!important;
+  width:190px!important;
+}
+#saReports .quarter-table th:not(:first-child),
+#saReports .quarter-table td:not(:first-child){
+  min-width:145px!important;
+}
+#saReports .quarter-table td::before,
+#saReports .quarter-table th::before{
+  content:none!important;
+  display:none!important;
+  min-width:0!important;
+  width:0!important;
+}
+#saReports .quarter-table .diff-up,
+#saReports .quarter-table .diff-down,
+#saReports .quarter-table .diff-zero{
+  display:block!important;
+  margin-top:3px!important;
+  white-space:normal!important;
+  line-height:1.25!important;
+}
+@media(max-width:700px){
+  #saReports{overflow:hidden!important}
+  #saReports .quarter-card{overflow:hidden!important;padding:10px!important}
+  #saReports .quarter-title{font-size:15px!important}
+  #saReports .quarter-table{margin-top:6px!important;border:1px solid #e5e7eb!important;border-radius:10px!important}
+  #saReports .quarter-table table{min-width:680px!important}
+  #saReports .quarter-table th,
+  #saReports .quarter-table td{font-size:11px!important;padding:8px!important}
+  #saReports .quarter-table th:first-child,
+  #saReports .quarter-table td:first-child{min-width:180px!important;width:180px!important}
+  #saReports .quarter-table th:not(:first-child),
+  #saReports .quarter-table td:not(:first-child){min-width:140px!important}
+}
+</style>
 </head>
 <body>
 <header><div class="logo">Report Tim Efan</div><div class="badge">Dashboard Tim Sales</div></header>
