@@ -636,8 +636,8 @@ function monthOptionsV16(){
  const keys=[...new Set(customers.map(x=>String(x.dateISO||'').slice(0,7)).filter(v=>/^\d{4}-\d{2}$/.test(v)))].sort().reverse();
  const now=currentYM(); if(!keys.includes(now))keys.unshift(now);
  const cf=document.getElementById('customerMonthFilter'),rf=document.getElementById('rankingMonthFilter');
- const oldC=cf?.value||now,oldR=rf?.value||now;
- if(cf){cf.innerHTML='<option value="">Semua Bulan</option>'+keys.map(k=>`<option value="${k}">${monthLabelV16(k)}</option>`).join('');cf.value=keys.includes(oldC)?oldC:now}
+ const oldC=cf?.value??'',oldR=rf?.value||now;
+ if(cf){cf.innerHTML='<option value="">Semua Bulan</option>'+keys.map(k=>`<option value="${k}">${monthLabelV16(k)}</option>`).join('');cf.value=(oldC===''||keys.includes(oldC))?oldC:''}
  if(rf){rf.innerHTML=keys.map(k=>`<option value="${k}">${monthLabelV16(k)}</option>`).join('');rf.value=keys.includes(oldR)?oldR:now}
 }
 function render(){
@@ -646,7 +646,11 @@ function render(){
  const cm=document.getElementById('customerMonthFilter')?.value||'';
  const rm=document.getElementById('rankingMonthFilter')?.value||currentYM();
  const data=customers.filter(x=>{
-   const basic=(!cm||String(x.dateISO||'').slice(0,7)===cm)&&(!q||[x.cid,x.name,x.cluster,x.pkg].join(' ').toLowerCase().includes(q))&&(!sf||String(x.sales||'').toLowerCase().includes(sf));
+   const searchMatch=!q||[x.cid,x.name,x.cluster,x.pkg,x.sales,x.status].join(' ').toLowerCase().includes(q);
+   // Data yang belum terpasang tidak memiliki tanggal pemasangan. Jangan hilangkan dari daftar utama,
+   // dan izinkan pencarian menemukan data tersebut walaupun filter bulan sedang aktif.
+   const monthMatch=!cm||searchMatch===true&&q?true:String(x.dateISO||'').slice(0,7)===cm;
+   const basic=monthMatch&&searchMatch&&(!sf||String(x.sales||'').toLowerCase().includes(sf));
    if(!basic)return false;
    if(window.billingFilter && window.billingFilter!=='all'){
      const bi=billingInfoFor(x);
