@@ -552,6 +552,16 @@ input,select,button{touch-action:manipulation}
 <section class="panel" id="rankingPanel"><div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px"><h2 style="margin:0;flex:1">Ranking Sales</h2><div><label for="rankingMonthFilter" style="display:block;font-size:11px;font-weight:800;color:#718096;margin-bottom:4px">BULAN RANKING</label><select id="rankingMonthFilter" onchange="render()" style="min-height:40px;padding:8px 10px;border:1px solid #d5dce7;border-radius:9px;background:#fff;font-size:14px"><option value="">Bulan ini</option></select></div></div><div id="rankingPeriod" class="muted" style="margin-bottom:8px"></div><div id="ranking"></div></section>
 </div>
 </main>
+<style id="efan-billing-filter-buttons">
+.billing-summary-buttons{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-left:10px}
+.billing-summary-btn{width:auto!important;min-height:34px;padding:7px 11px!important;border:1px solid #e2e8f0!important;border-radius:999px!important;background:#fff!important;color:#334155!important;font-weight:800!important;cursor:pointer;transition:.15s}
+.billing-summary-btn:hover{transform:translateY(-1px);box-shadow:0 3px 10px #0001}
+.billing-summary-btn.active{box-shadow:0 0 0 2px #3949ab33;border-color:#3949ab!important}
+.billing-summary-btn.billing-paid{color:#166534!important;background:#ecfdf3!important;border-color:#bbf7d0!important}
+.billing-summary-btn.billing-unpaid{color:#92400e!important;background:#fff7ed!important;border-color:#fed7aa!important}
+.billing-summary-btn.billing-overdue{color:#991b1b!important;background:#fef2f2!important;border-color:#fecaca!important}
+@media(max-width:600px){.billing-summary-buttons{margin:8px 0 0;display:grid;grid-template-columns:1fr 1fr;width:100%}.billing-summary-btn{width:100%!important;font-size:12px!important}.billing-panel{display:block!important}}
+</style>
 <script id="efan-v20-billing-core">
 var billingRecords=window.billingRecords||{}; var billingTableAvailable=true;
 function isoDateLocal(d){return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`}
@@ -570,7 +580,23 @@ async function loadBillingRecords(showError=false){try{const data=await api('cus
 async function setPaid(i){const x=customers[i],info=billingInfoFor(x);if(!x?.id||!info)return;if(!billingTableAvailable){alert('Fitur pembayaran belum terhubung ke Supabase. Buat tabel customer_billing_payments terlebih dahulu.');return}try{const payload={customer_id:x.id,billing_period:info.billingPeriod,billing_date:info.billingDate,due_date:info.dueDate,status:'SUDAH DIBAYAR',paid_at:new Date().toISOString(),updated_at:new Date().toISOString()};await api('customer_billing_payments?on_conflict=customer_id,billing_period',{method:'POST',headers:{Prefer:'resolution=merge-duplicates,return=minimal'},body:JSON.stringify(payload)});await loadBillingRecords();render()}catch(e){alert('Gagal menyimpan pembayaran: '+(e.message||e))}}
 async function setUnpaid(i){const x=customers[i],info=billingInfoFor(x);if(!x?.id||!info)return;if(!billingTableAvailable){alert('Fitur pembayaran belum terhubung ke Supabase.');return}try{await api('customer_billing_payments?customer_id=eq.'+encodeURIComponent(x.id)+'&billing_period=eq.'+encodeURIComponent(info.billingPeriod),{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({status:'BELUM DIBAYAR',paid_at:null,updated_at:new Date().toISOString()})});await loadBillingRecords();render()}catch(e){alert('Gagal mengubah status pembayaran: '+(e.message||e))}}
 function billingHtml(i){const x=customers[i],info=billingInfoFor(x);if(!info)return '<span class="muted">—</span>';const cls=info.paid?'billing-paid':info.overdue?'billing-overdue':'billing-unpaid',icon=info.paid?'✓':info.overdue?'!':'•',button=info.paid?`<button class="pay-btn paid" onclick="setUnpaid(${i})">Sudah Dibayar</button>`:`<button class="pay-btn" onclick="setPaid(${i})">Tandai Terbayar</button>`;return `<div><span class="billing-badge ${cls}">${icon} ${info.status}</span><div class="billing-info">Tagihan ${formatDate(info.billingDate)}<br>Jatuh tempo ${formatDate(info.dueDate)}</div><div style="margin-top:5px">${button}</div></div>`}
-function renderBillingSummary(){const el=document.getElementById('billingSummaryText');if(!el)return;let paid=0,unpaid=0,overdue=0;customers.filter(x=>x.installed&&x.dateISO).forEach(x=>{const i=billingInfoFor(x);if(i?.paid)paid++;else if(i?.overdue)overdue++;else if(i)unpaid++});el.innerHTML=`<span style="display:inline-flex;gap:8px;flex-wrap:wrap"><span class="billing-badge billing-paid">✓ ${paid} Sudah Dibayar</span><span class="billing-badge billing-unpaid">• ${unpaid} Belum Dibayar</span><span class="billing-badge billing-overdue">! ${overdue} Jatuh Tempo</span></span>`}
+window.billingFilter=window.billingFilter||'all';
+function setBillingFilter(filter){
+  window.billingFilter=filter||'all';
+  renderBillingSummary();
+  render();
+  const panel=document.getElementById('billingSummary');
+  const table=document.querySelector('.tablewrap');
+  if(table) table.scrollIntoView({behavior:'smooth',block:'start'});
+}
+function renderBillingSummary(){
+ const el=document.getElementById('billingSummaryText');if(!el)return;
+ let paid=0,unpaid=0,overdue=0;
+ customers.filter(x=>x.installed&&x.dateISO).forEach(x=>{const i=billingInfoFor(x);if(i?.paid)paid++;else if(i?.overdue)overdue++;else if(i)unpaid++});
+ const active=window.billingFilter||'all';
+ const btn=(key,label,cls)=>`<button type="button" class="billing-summary-btn ${cls} ${active===key?'active':''}" onclick="setBillingFilter('${key}')">${label}</button>`;
+ el.innerHTML=`<span class="billing-summary-buttons">${btn('all','Semua','all')}${btn('paid','✓ '+paid+' Sudah Dibayar','billing-paid')}${btn('unpaid','• '+unpaid+' Belum Dibayar','billing-unpaid')}${btn('overdue','! '+overdue+' Jatuh Tempo','billing-overdue')}</span>`;
+}
 </script>
 <script id="efan-v10-supabase-core">
 const SUPABASE_URL='https://eeontbxfmidpcuhguewk.supabase.co';
@@ -619,7 +645,18 @@ function render(){
  const q=val('search').toLowerCase(),sf=val('salesFilter').toLowerCase();
  const cm=document.getElementById('customerMonthFilter')?.value||'';
  const rm=document.getElementById('rankingMonthFilter')?.value||currentYM();
- const data=customers.filter(x=>(!cm||String(x.dateISO||'').slice(0,7)===cm)&&(!q||[x.cid,x.name,x.cluster,x.pkg].join(' ').toLowerCase().includes(q))&&(!sf||String(x.sales||'').toLowerCase().includes(sf)));
+ const data=customers.filter(x=>{
+   const basic=(!cm||String(x.dateISO||'').slice(0,7)===cm)&&(!q||[x.cid,x.name,x.cluster,x.pkg].join(' ').toLowerCase().includes(q))&&(!sf||String(x.sales||'').toLowerCase().includes(sf));
+   if(!basic)return false;
+   if(window.billingFilter && window.billingFilter!=='all'){
+     const bi=billingInfoFor(x);
+     if(!bi)return false;
+     if(window.billingFilter==='paid')return bi.paid;
+     if(window.billingFilter==='unpaid')return !bi.paid && !bi.overdue;
+     if(window.billingFilter==='overdue')return bi.overdue;
+   }
+   return true;
+ });
  const rows=document.getElementById('rows');
  if(rows)rows.innerHTML=data.length?data.map(x=>{const i=customers.indexOf(x);return `<tr><td>${escapeHtml(x.cid)}</td><td><strong>${escapeHtml(x.name)}</strong></td><td>${escapeHtml(x.cluster)}</td><td>${escapeHtml(x.pkg)}</td><td>${escapeHtml(x.date||'—')}</td><td><button class="status ${x.installed?'installed':'pending'}" onclick="toggle(${i})">${x.installed?'✓ Terpasang':'Belum Terpasang'}</button></td><td>${billingHtml(i)}</td><td>${escapeHtml(x.sales)}</td><td><div class="action-wrap"><button class="action-btn edit-btn" onclick="openEdit(${i})">✎ Edit</button><button class="action-btn delete-btn" onclick="deleteCustomer(${i})">Hapus</button></div></td></tr>`}).join(''):`<tr><td colspan="9" style="text-align:center;padding:25px;color:#718096">Belum ada data pelanggan${cm?' pada '+escapeHtml(monthLabelV16(cm)):''}.</td></tr>`;
  const now=currentYM();
