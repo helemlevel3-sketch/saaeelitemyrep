@@ -1,6 +1,7 @@
 <!doctype html>
 <html lang="id">
 <head>
+<!-- Report SA v23: local-date timezone fix -->
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Report Tim Efan</title>
@@ -668,7 +669,7 @@ function render(){
  const target=Math.max(0,Number(document.getElementById('target')?.value)||0);
  const saEl=document.getElementById('SA')||document.getElementById('closing');if(saEl)saEl.textContent=totalMonth;
  const progress=document.getElementById('progress');if(progress)progress.textContent=target?Math.round(totalMonth/target*100)+'%':'0%';
- const today=new Date().toISOString().slice(0,10),todayEl=document.getElementById('today');if(todayEl)todayEl.textContent=customers.filter(x=>x.dateISO===today&&x.installed).length;
+ const today=isoDateLocal(new Date()),todayEl=document.getElementById('today');if(todayEl)todayEl.textContent=customers.filter(x=>x.dateISO===today&&x.installed).length;
  const names=[...new Set([...DEFAULT_SA_SALES,...customers.map(x=>normalizeSalesName(x.sales)).filter(Boolean)])].sort();
  const rank=names.map(s=>({s,n:customers.filter(x=>normalizeSalesName(x.sales)===s&&x.installed&&String(x.dateISO||'').slice(0,7)===rm).length})).filter(x=>x.n>0).sort((a,b)=>b.n-a.n||a.s.localeCompare(b.s));
  const r=document.getElementById('ranking'),rp=document.getElementById('rankingPeriod');
@@ -677,7 +678,7 @@ function render(){
  renderBillingSummary();
 }
 
-async function toggle(i){const x=customers[i];if(!x?.id)return;const installed=!x.installed,date=installed?new Date().toISOString().slice(0,10):null;try{await api('customers?id=eq.'+encodeURIComponent(x.id),{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({status:installed?'Terpasang':'Belum Terpasang',tanggal_terpasang:date,updated_at:new Date().toISOString()})});await loadCustomers(true)}catch(e){alert('Gagal memperbarui status: '+e.message)}}
+async function toggle(i){const x=customers[i];if(!x?.id)return;const installed=!x.installed,date=installed?isoDateLocal(new Date()):null;try{await api('customers?id=eq.'+encodeURIComponent(x.id),{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({status:installed?'Terpasang':'Belum Terpasang',tanggal_terpasang:date,updated_at:new Date().toISOString()})});await loadCustomers(true)}catch(e){alert('Gagal memperbarui status: '+e.message)}}
 async function openEdit(i){editIndex=i;const x=customers[i];if(!x)return;document.getElementById('eCid').value=x.cid||'';document.getElementById('eName').value=x.name||'';document.getElementById('eCluster').value=x.cluster||'';document.getElementById('ePkg').value=x.pkg||'';document.getElementById('eSales').value=x.sales||'';document.getElementById('eDate').value=parseDateForInput(x.dateISO||x.date||'');document.getElementById('editModal').classList.add('show')}
 function closeEdit(){document.getElementById('editModal').classList.remove('show');editIndex=-1}
 async function saveEdit(){if(editIndex<0)return;const x=customers[editIndex],cid=val('eCid'),name=normalize(val('eName')),cluster=normalize(val('eCluster')),pkg=normalize(val('ePkg')),sales=normalize(val('eSales')),d=document.getElementById('eDate')?.value||'';if(!cid||!name||!cluster||!pkg||!sales){alert('ID Pelanggan, Nama, Cluster, Paket, dan Nama Sales wajib diisi.');return}try{const salesId=await getOrCreateSalesId(sales);await api('customers?id=eq.'+encodeURIComponent(x.id),{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({cid_pelanggan:cid,nama:name,cluster,paket:pkg,tanggal_terpasang:d||null,sales_id:salesId,status:d?'Terpasang':'Belum Terpasang',updated_at:new Date().toISOString()})});closeEdit();await loadCustomers(true)}catch(e){alert('Gagal mengedit data: '+e.message)}}
