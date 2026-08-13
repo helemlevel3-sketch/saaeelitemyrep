@@ -1,0 +1,754 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Report Tim Efan</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:Inter,Arial,sans-serif;background:#f5f7fb;color:#172033}
+header{background:#fff;border-bottom:1px solid #e7eaf0;padding:18px 24px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:5}
+.logo{font-weight:800;font-size:21px}.badge{background:#eef2ff;color:#3949ab;padding:8px 12px;border-radius:20px;font-size:13px}
+main{max-width:1200px;margin:auto;padding:24px}.hero{margin-bottom:22px}.hero h1{margin:0 0 6px;font-size:27px}.muted{color:#718096}
+.cards{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin:20px 0}.card,.panel{background:#fff;border:1px solid #e8ebf1;border-radius:16px;padding:18px;box-shadow:0 3px 12px #1b25520a}.label{font-size:13px;color:#718096}.value{font-size:27px;font-weight:800;margin-top:8px}
+.grid{display:grid;grid-template-columns:1.3fr .7fr;gap:18px}.panel h2{font-size:18px;margin:0 0 16px}.toolbar{display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap}input,select{border:1px solid #dfe4ec;border-radius:10px;padding:10px 12px;background:white}
+table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:13px 10px;border-bottom:1px solid #edf0f4;font-size:14px}th{font-size:12px;color:#718096;text-transform:uppercase}
+.status{border:0;border-radius:18px;padding:7px 11px;font-weight:700;cursor:pointer}.installed{background:#dcfce7;color:#166534}.pending{background:#fff7ed;color:#9a3412}
+.rank{display:flex;align-items:center;justify-content:space-between;padding:13px 0;border-bottom:1px solid #edf0f4}.rank strong{display:block}.ranknum{font-size:20px;width:35px}.count{font-weight:800}
+@media(max-width:850px){.cards{grid-template-columns:repeat(2,1fr)}.grid{grid-template-columns:1fr}main{padding:16px}header{padding:15px 16px}table{min-width:760px}.tablewrap{overflow:auto}}
+
+/* Mobile-first app layout */
+.bottomnav{display:none}
+@media(max-width:700px){
+ body{background:#f6f7fb;padding-bottom:76px}
+ header{padding:14px 16px}
+ .logo{font-size:19px}
+ .badge{font-size:11px;padding:7px 10px}
+ main{padding:16px 12px;max-width:560px}
+ .hero{padding:4px 2px 10px}.hero h1{font-size:23px}
+ .cards{grid-template-columns:repeat(2,1fr);gap:10px;margin:12px 0 16px}
+ .card{padding:14px;border-radius:14px;min-height:102px}
+ .label{font-size:11px}.value{font-size:23px}
+ #target{font-size:22px!important}
+ .grid{display:flex;flex-direction:column;gap:14px}
+ .panel{padding:14px;border-radius:15px}
+ .panel h2{font-size:17px}
+ .customer-form{display:grid!important;grid-template-columns:1fr!important}.customer-form button{width:auto!important;justify-self:center!important}
+ form.toolbar button{grid-column:auto!important;padding:13px}
+ .toolbar{gap:8px}
+ .toolbar input{width:100%;padding:12px}
+ .tablewrap{overflow:visible}
+ table,thead,tbody,tr,td{display:block;width:100%}
+ thead{display:none}
+ tbody{display:flex;flex-direction:column;gap:10px}
+ tr{background:#fff;border:1px solid #e8ebf1;border-radius:14px;padding:12px;box-shadow:0 2px 8px #1b255208}
+ td{border:0;padding:4px 0;font-size:13px;display:flex;justify-content:space-between;gap:12px}
+ td:nth-child(1):before{content:"ID Pelanggan";font-weight:600;color:#718096}
+ td:nth-child(2):before{content:"Nama";font-weight:600;color:#718096}
+ td:nth-child(3):before{content:"Cluster";font-weight:600;color:#718096}
+ td:nth-child(4):before{content:"Paket";font-weight:600;color:#718096}
+ td:nth-child(5):before{content:"Tanggal Terpasang";font-weight:600;color:#718096}
+ td:nth-child(6):before{content:"Status";font-weight:600;color:#718096}
+ td:nth-child(7):before{content:"Sales";font-weight:600;color:#718096}
+ td:nth-child(8):before{content:"Action";font-weight:600;color:#718096}
+ td:nth-child(2){font-size:14px;padding-bottom:6px}
+ td:nth-child(6){align-items:center;margin-top:5px;padding-top:8px;border-top:1px solid #edf0f4}
+ .status{padding:10px 14px;font-size:13px}
+ .rank{padding:14px 2px}
+ .bottomnav{display:flex;position:fixed;bottom:0;left:0;right:0;height:66px;background:#fff;border-top:1px solid #e5e7eb;z-index:20;box-shadow:0 -3px 14px #0000000a}
+ .bottomnav a{flex:1;text-decoration:none;color:#718096;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:11px;gap:4px}
+ .bottomnav a.active{color:#3949ab;font-weight:700}
+ .bottomnav span{font-size:20px;line-height:20px}
+}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script><style id="professional-v5">
+.date-field{display:flex;flex-direction:column;gap:6px}.date-field label{font-size:12px;font-weight:700;color:#718096}.date-field input{width:100%}
+.action-wrap{display:flex;gap:7px;justify-content:flex-end;flex-wrap:wrap}.action-btn{border:0;border-radius:8px;padding:7px 10px;font-size:12px;font-weight:700;cursor:pointer}.edit-btn{background:#eef2ff;color:#3949ab}.delete-btn{background:#fee2e2;color:#b91c1c}.save-btn{background:#dcfce7;color:#166534}
+.modal-bg{display:none;position:fixed;inset:0;background:#0008;z-index:10000;align-items:center;justify-content:center;padding:14px}.modal-bg.show{display:flex}.modal{width:min(600px,100%);max-height:88vh;overflow:auto;background:#fff;border-radius:16px;padding:18px;box-shadow:0 20px 60px #0004}.modal-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.modal-grid label{font-size:12px;font-weight:700;color:#718096}.modal-grid input{width:100%;margin-top:5px}@media(max-width:600px){.modal-grid{grid-template-columns:1fr}.modal{border-radius:16px 16px 0 0;max-height:90vh;position:absolute;bottom:0}}
+.quarter-card{border:1px solid #e8ebf1;border-radius:14px;padding:14px;margin-top:12px;background:#fff}.quarter-title{font-weight:800;margin-bottom:10px}.quarter-table{overflow:auto}.quarter-table table{min-width:760px}.diff-up{color:#166534;font-weight:700}.diff-down{color:#b91c1c;font-weight:700}.diff-zero{color:#64748b;font-weight:700}
+</style>
+<style id="efan-max10-rows-v5">
+/* Batasi area tabel pelanggan agar sekitar 10 baris terlihat. */
+.customer-table-wrap,.data-table-wrap,.table-wrap,#customerTableWrap,#customersTableWrap{
+  max-height:620px!important;
+  overflow-y:auto!important;
+  overflow-x:auto!important;
+  -webkit-overflow-scrolling:touch;
+  overscroll-behavior:contain;
+  border-radius:12px;
+}
+.customer-table-wrap thead th,.data-table-wrap thead th,.table-wrap thead th,
+#customerTableWrap thead th,#customersTableWrap thead th{
+  position:sticky;
+  top:0;
+  z-index:3;
+  background:#fff;
+}
+@media(max-width:768px){
+  .customer-table-wrap,.data-table-wrap,.table-wrap,#customerTableWrap,#customersTableWrap{
+    max-height:600px!important;
+    width:100%;
+  }
+}
+</style>
+
+<style id="efan-v6-mobile-caps">
+*{box-sizing:border-box}
+html,body{max-width:100%;overflow-x:hidden}
+input[type="text"],input[type="search"],input:not([type]),textarea{
+  text-transform:uppercase;
+}
+button,input,select,textarea{font:inherit}
+@media(max-width:768px){
+  body{font-size:14px}
+  .container,.main,.content,.card,.panel{max-width:100%!important}
+  .grid,.row,.form-grid{grid-template-columns:1fr!important}
+  .toolbar,.filters,.actions{display:flex!important;flex-wrap:wrap!important;gap:8px!important}
+  .toolbar>*{flex:1 1 140px;max-width:100%}
+  input,select,textarea,button{max-width:100%}
+  .efan-v6-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+}
+.efan-v6-report{
+  margin:20px 0;padding:18px;border:1px solid #e5e7eb;border-radius:16px;
+  background:#fff;box-shadow:0 4px 16px rgba(15,23,42,.05)
+}
+.efan-v6-controls{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
+.efan-v6-controls>*{min-height:42px}
+.efan-v6-scroll{width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}
+.efan-v6-report table{width:100%;border-collapse:collapse;min-width:620px}
+.efan-v6-report th,.efan-v6-report td{padding:10px;border-bottom:1px solid #e5e7eb;text-align:left}
+.efan-v6-report th{background:#f8fafc;font-weight:700}
+.efan-v6-kpi{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:16px}
+.efan-v6-kpi div{padding:12px;border-radius:12px;background:#f8fafc}
+@media(max-width:768px){.efan-v6-kpi{grid-template-columns:1fr}}
+</style>
+
+<style id="efan-v9-report-style">
+.efan-v9-report{
+  display:grid!important;
+  grid-template-columns:minmax(0,3fr) minmax(280px,1fr);
+  gap:24px;
+  margin:22px 0;
+  align-items:stretch;
+}
+.efan-v9-card{
+  background:#fff;
+  border:1px solid #e5e7eb;
+  border-radius:22px;
+  padding:26px;
+  box-shadow:0 2px 10px rgba(15,23,42,.04);
+  min-width:0;
+}
+.efan-v9-card h3{margin:0 0 28px;font-size:24px;line-height:1.2}
+.efan-v9-month{font-size:22px;font-weight:700;margin-bottom:8px}
+.efan-v9-total{float:right;margin-top:-34px;font-size:22px;font-weight:700}
+.efan-v9-subtitle{color:#64748b;font-size:18px;line-height:1.25;margin-top:-12px;margin-bottom:24px}
+.efan-v9-list{width:100%}
+.efan-v9-sales-row{
+  padding:10px 0 18px;
+  border-bottom:1px solid #e5e7eb;
+  color:#64748b;
+  font-size:18px;
+}
+.efan-v9-package-row{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:12px;
+  padding:14px 0;
+  border-bottom:1px solid #e5e7eb;
+  font-size:18px;
+}
+.efan-v9-package-row strong{color:#42579b;white-space:nowrap}
+.efan-v9-empty{color:#64748b;padding:12px 0}
+@media(max-width:768px){
+  .efan-v9-report{grid-template-columns:1fr!important;gap:14px}
+  .efan-v9-card{padding:18px;border-radius:16px}
+  .efan-v9-card h3{font-size:20px;margin-bottom:20px}
+  .efan-v9-month{font-size:18px}
+  .efan-v9-total{font-size:18px}
+  .efan-v9-subtitle{font-size:15px}
+  .efan-v9-sales-row,.efan-v9-package-row{font-size:15px}
+}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style id="efan-v10-sync-style">
+#syncStatus{font-family:Inter,Arial,sans-serif}
+</style>
+
+<style id="efan-v14-mobile-polish">
+/* Desktop remains unchanged; these rules specifically improve phone usability. */
+html,body{max-width:100%;overflow-x:hidden}
+button,input,select{font-family:inherit}
+input,select,button{touch-action:manipulation}
+@media(max-width:700px){
+  body{font-size:14px}
+  header{height:58px;padding:10px 12px;position:sticky;top:0}
+  .logo{font-size:17px;letter-spacing:-.2px}
+  .badge{font-size:10px;padding:6px 8px;max-width:145px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+  main{width:100%;max-width:none;padding:12px 10px 88px}
+  .hero{padding:3px 4px 8px;margin-bottom:8px}
+  .hero h1{font-size:21px;line-height:1.2;margin-bottom:4px}
+  .hero .muted{font-size:12px;line-height:1.35}
+
+  .cards{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:10px 0 12px}
+  .card{min-width:0;min-height:88px;padding:11px;border-radius:12px}
+  .label{font-size:10px;line-height:1.2}
+  .value{font-size:21px;margin-top:6px}
+  #target{font-size:20px!important;margin-top:5px!important}
+
+  .grid{gap:10px}
+  .panel{padding:12px;border-radius:13px}
+  .panel h2{font-size:16px;margin-bottom:11px}
+
+  .customer-form{gap:7px!important}
+  .customer-form input,
+  .customer-form select,
+  .customer-form button,
+  .toolbar input,
+  .toolbar select{width:100%!important;min-height:44px;font-size:16px!important;padding:10px 11px}
+  .customer-form button{justify-self:stretch!important;width:100%!important;border-radius:10px}
+  .date-field label{font-size:11px}
+  .date-field input{min-height:44px}
+
+  /* Customer list: compact cards, with only 10 visible at a time. */
+  .customer-table-wrap{
+    max-height:610px!important;
+    overflow-y:auto!important;
+    overflow-x:hidden!important;
+    -webkit-overflow-scrolling:touch;
+    border-radius:11px;
+  }
+  .customer-table-wrap tbody{gap:7px}
+  .customer-table-wrap tr{padding:10px;border-radius:11px}
+  .customer-table-wrap td{font-size:12px;line-height:1.25;padding:3px 0}
+  .customer-table-wrap td:before{font-size:10px;min-width:95px;flex:0 0 95px}
+  .customer-table-wrap td:nth-child(2){font-size:13px}
+  .customer-table-wrap td:nth-child(7){align-items:flex-start}
+  .customer-table-wrap td:nth-child(7){word-break:break-word}
+  .customer-table-wrap td:nth-child(8){align-items:center}
+  .action-wrap{gap:5px!important;justify-content:flex-end!important}
+  .action-btn{min-height:36px;padding:8px 10px;font-size:11px}
+
+  .status{min-height:36px;padding:8px 10px;font-size:11px}
+
+  /* Report cards */
+  .efan-v9-report{margin:12px 0!important;gap:10px!important}
+  .efan-v9-card{padding:13px!important;border-radius:13px!important}
+  .efan-v9-card h3{font-size:17px!important;margin-bottom:13px!important}
+  .efan-v9-month{font-size:16px!important}
+  .efan-v9-total{font-size:16px!important;margin-top:-25px!important}
+  .efan-v9-subtitle{font-size:12px!important;margin-bottom:12px!important}
+  .efan-v9-sales-row,.efan-v9-package-row{font-size:13px!important;padding:9px 0!important}
+  .efan-v9-package-row strong{font-size:13px}
+
+  /* Quarterly comparison becomes a horizontal-scroll table instead of crushing columns. */
+  #saReports{overflow:hidden}
+  #saQuarterCards{overflow:visible}
+  .quarter-card{padding:12px!important;margin-bottom:10px!important;border-radius:12px!important}
+  .quarter-title{font-size:14px!important;line-height:1.35}
+  .quarter-table{overflow-x:auto!important;-webkit-overflow-scrolling:touch}
+  .quarter-table table{min-width:720px!important;display:table!important}
+  .quarter-table thead{display:table-header-group!important}
+  .quarter-table tbody{display:table-row-group!important}
+  .quarter-table tr{display:table-row!important;background:transparent}
+  .quarter-table th,.quarter-table td{display:table-cell!important;white-space:nowrap;padding:8px!important;font-size:11px!important}
+
+  /* Search picker: proper mobile bottom sheet with a scrollable list. */
+  .sa-pop-bg{padding:0!important;align-items:flex-end!important}
+  .sa-pop{
+    width:100%!important;
+    max-width:none!important;
+    max-height:88vh!important;
+    border-radius:18px 18px 0 0!important;
+    padding:14px!important;
+  }
+  .sa-pop-head{position:sticky;top:0;background:#fff;z-index:2}
+  .sa-pop-search{min-height:46px!important;font-size:16px!important}
+  .sa-pop-list{max-height:62vh!important;overflow-y:auto!important;-webkit-overflow-scrolling:touch}
+  .sa-pop-item{min-height:45px!important;font-size:13px!important;padding:10px!important}
+
+  /* Edit modal fits small screens. */
+  .modal-bg{padding:10px!important;align-items:flex-end!important}
+  .modal{width:100%!important;max-width:none!important;max-height:92vh!important;overflow-y:auto!important;border-radius:16px 16px 10px 10px!important;padding:15px!important}
+  .modal-grid{grid-template-columns:1fr!important;gap:9px!important}
+  .modal input{min-height:44px!important;font-size:16px!important}
+  .modal button{min-height:42px!important}
+
+  #syncStatus{right:8px!important;bottom:72px!important;font-size:10px!important;max-width:190px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+  .bottomnav{height:64px!important}
+  .bottomnav a{font-size:10px!important}
+  .bottomnav span{font-size:18px!important}
+}
+@media(max-width:380px){
+  main{padding-left:8px;padding-right:8px}
+  .cards{gap:6px}
+  .card{padding:9px}
+  .value{font-size:19px}
+  .customer-table-wrap{max-height:570px!important}
+}
+</style>
+
+<style id="efan-v15-customer-mobile-fix">
+@media(max-width:700px){
+  /* Customer list is a real card list on phones, not a broken stacked table. */
+  .tablewrap{
+    width:100%!important;
+    max-height:620px!important;
+    overflow-y:auto!important;
+    overflow-x:hidden!important;
+    -webkit-overflow-scrolling:touch;
+    overscroll-behavior:contain;
+    border-radius:12px;
+  }
+  .tablewrap table{
+    width:100%!important;
+    min-width:0!important;
+    margin:0!important;
+    border-collapse:separate!important;
+    border-spacing:0!important;
+    display:block!important;
+  }
+  .tablewrap thead{display:none!important}
+  .tablewrap tbody{
+    width:100%!important;
+    display:flex!important;
+    flex-direction:column!important;
+    gap:9px!important;
+  }
+  .tablewrap tbody tr{
+    width:100%!important;
+    display:grid!important;
+    grid-template-columns:1fr!important;
+    background:#fff!important;
+    border:1px solid #dfe5ee!important;
+    border-radius:13px!important;
+    padding:11px 12px!important;
+    margin:0!important;
+    box-shadow:0 2px 8px rgba(20,35,60,.06)!important;
+  }
+  .tablewrap tbody td{
+    width:100%!important;
+    min-width:0!important;
+    display:grid!important;
+    grid-template-columns:112px minmax(0,1fr)!important;
+    align-items:start!important;
+    column-gap:9px!important;
+    border:0!important;
+    border-bottom:1px solid #eef1f5!important;
+    padding:6px 0!important;
+    margin:0!important;
+    color:#1f2937!important;
+    font-size:12px!important;
+    line-height:1.3!important;
+    text-align:left!important;
+    overflow:visible!important;
+    word-break:break-word!important;
+    overflow-wrap:anywhere!important;
+  }
+  .tablewrap tbody td:last-child{
+    border-bottom:0!important;
+    padding-bottom:2px!important;
+  }
+  .tablewrap tbody td::before{
+    display:block!important;
+    min-width:0!important;
+    width:auto!important;
+    flex:none!important;
+    font-size:10px!important;
+    line-height:1.3!important;
+    font-weight:800!important;
+    color:#718096!important;
+    white-space:normal!important;
+  }
+  .tablewrap tbody td:nth-child(1)::before{content:"ID Pelanggan"!important}
+  .tablewrap tbody td:nth-child(2)::before{content:"Nama"!important}
+  .tablewrap tbody td:nth-child(3)::before{content:"Cluster"!important}
+  .tablewrap tbody td:nth-child(4)::before{content:"Paket"!important}
+  .tablewrap tbody td:nth-child(5)::before{content:"Tanggal Terpasang"!important}
+  .tablewrap tbody td:nth-child(6)::before{content:"Status"!important}
+  .tablewrap tbody td:nth-child(7)::before{content:"Sales"!important}
+  .tablewrap tbody td:nth-child(8)::before{content:"Action"!important}
+
+  /* Force actual cell values to remain visible and readable. */
+  .tablewrap tbody td,
+  .tablewrap tbody td *{
+    color:#1f2937!important;
+  }
+  .tablewrap tbody td strong{
+    color:#111827!important;
+    font-weight:800!important;
+  }
+  .tablewrap tbody td:nth-child(2){
+    font-size:13px!important;
+    font-weight:700!important;
+  }
+  .tablewrap tbody td:nth-child(7){
+    font-size:11px!important;
+    font-weight:700!important;
+  }
+
+  .tablewrap tbody td:nth-child(6),
+  .tablewrap tbody td:nth-child(8){
+    grid-template-columns:112px minmax(0,1fr)!important;
+    align-items:center!important;
+  }
+  .tablewrap .status{
+    width:max-content!important;
+    max-width:100%!important;
+    min-height:34px!important;
+    padding:7px 10px!important;
+    font-size:10px!important;
+    border-radius:18px!important;
+    justify-self:start!important;
+  }
+  .tablewrap .action-wrap{
+    display:flex!important;
+    flex-wrap:wrap!important;
+    gap:6px!important;
+    justify-content:flex-start!important;
+    align-items:center!important;
+  }
+  .tablewrap .action-btn{
+    min-height:34px!important;
+    padding:7px 10px!important;
+    font-size:10px!important;
+    border-radius:8px!important;
+  }
+
+  /* Keep roughly 10 customer cards visible, then scroll inside the list. */
+  .tablewrap{max-height:610px!important}
+
+  /* Make the form fields fit without clipping. */
+  .customer-form input,
+  .customer-form select{
+    min-width:0!important;
+    width:100%!important;
+    font-size:16px!important;
+  }
+}
+</style>
+<style id="efan-v16-month-filter-style">
+.efan-month-toolbar{align-items:center}
+.efan-month-toolbar select{min-height:40px;padding:9px 11px;border:1px solid #ccd5e1;border-radius:9px;background:#fff;font-size:14px;min-width:155px}
+@media(max-width:700px){
+ .efan-month-toolbar{display:grid!important;grid-template-columns:1fr!important;gap:8px!important}
+ .efan-month-toolbar select,.efan-month-toolbar input{width:100%!important;min-height:44px!important;font-size:16px!important}
+ #rankingPanel select{width:100%;min-height:44px;font-size:16px}
+ #rankingPanel>div:first-child>div:last-child{width:100%}
+ #rankingPeriod{font-size:12px}
+}
+</style>
+</head>
+<body>
+<header><div class="logo">Report Tim Efan</div><div class="badge">Dashboard Tim Sales</div></header>
+<div id="editModal" class="modal-bg" onclick="if(event.target===this)closeEdit()"><div class="modal"><div style="display:flex;align-items:center;gap:10px;margin-bottom:14px"><h3 style="margin:0;flex:1">Edit Data Pelanggan</h3><button type="button" onclick="closeEdit()">Tutup</button></div><div class="modal-grid"><div><label>ID Pelanggan</label><input id="eCid"></div><div><label>Nama</label><input id="eName"></div><div><label>Cluster</label><input id="eCluster"></div><div><label>Paket</label><input id="ePkg" onclick="openSaPicker('ePkg','Pilih Paket',SA_PACKAGES)"></div><div class="date-field"><label for="eDate">Tanggal Terpasang</label><input id="eDate" type="date"></div><div><label>Nama Sales</label><input id="eSales" onclick="openSaPicker('eSales','Pilih Nama Sales',SA_SALES)"></div></div><div style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px"><button type="button" onclick="closeEdit()">Batal</button><button type="button" class="action-btn save-btn" onclick="saveEdit()">Simpan Perubahan</button></div></div></div>
+<main>
+<section class="hero" id="dashboard"><h1>Dashboard Sales</h1><div class="muted">Kelola pelanggan, pemasangan, dan ranking SA sales.</div></section>
+<div class="cards">
+<div class="card">
+<div class="label">Target SA Tim</div>
+<input id="target" type="number" min="0" value="40" onchange="updateTarget()" style="width:100%;margin-top:8px;font-size:25px;font-weight:800;border:0;border-bottom:2px solid #e2e8f0;outline:none;padding:4px 0">
+</div>
+<div class="card"><div class="label">SA Bulan Ini</div><div class="value" id="SA">0</div></div>
+<div class="card"><div class="label">Terpasang Hari Ini</div><div class="value" id="today">0</div></div>
+<div class="card"><div class="label">Progress Target</div><div class="value" id="progress">0%</div></div>
+</div>
+<div class="grid">
+<section class="panel" id="pelanggan">
+<h2>Data Pelanggan</h2>
+<div class="toolbar customer-form" style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px">
+<input id="cid" required placeholder="ID Pelanggan">
+<input id="name" required placeholder="Nama">
+<input id="cluster" required placeholder="Cluster">
+<input id="pkg" required placeholder="Paket" onclick="openSaPicker('pkg','Pilih Paket',SA_PACKAGES)">
+<div class="date-field"><label for="date">Tanggal Terpasang</label><input id="date" type="date" aria-label="Tanggal Terpasang"></div>
+<input id="sales" required placeholder="Nama Sales (ketik manual)" onclick="openSaPicker('sales','Pilih Nama Sales',SA_SALES)">
+<div id="formMessage" style="display:none;grid-column:1/-1;padding:10px;border-radius:10px;background:#dcfce7;color:#166534;font-weight:700;font-size:13px">✓ Pelanggan berhasil ditambahkan</div><button type="button" onclick="addCustomer()" style="grid-column:1/-1;border:0;border-radius:9px;padding:10px 18px;background:#3949ab;color:#fff;font-weight:700;font-size:13px;cursor:pointer;justify-self:center;width:auto;min-width:150px">SUBMIT SA</button>
+</div>
+<div class="toolbar efan-month-toolbar"><select id="customerMonthFilter" onchange="render()" aria-label="Filter pelanggan per bulan"><option value="">Semua Bulan</option></select><input id="search" placeholder="Cari ID / nama / cluster..." oninput="render()"><input id="salesFilter" placeholder="Filter nama sales..." oninput="render()"></div>
+<div class="tablewrap"><table><thead><tr><th>ID Pelanggan</th><th>Nama</th><th>Cluster</th><th>Paket</th><th>Tanggal Terpasang</th><th>Status</th><th>Sales</th><th>Action</th></tr></thead><tbody id="rows"></tbody></table></div>
+</section>
+<section class="panel" id="rankingPanel"><div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px"><h2 style="margin:0;flex:1">Ranking Sales</h2><div><label for="rankingMonthFilter" style="display:block;font-size:11px;font-weight:800;color:#718096;margin-bottom:4px">BULAN RANKING</label><select id="rankingMonthFilter" onchange="render()" style="min-height:40px;padding:8px 10px;border:1px solid #d5dce7;border-radius:9px;background:#fff;font-size:14px"><option value="">Bulan ini</option></select></div></div><div id="rankingPeriod" class="muted" style="margin-bottom:8px"></div><div id="ranking"></div></section>
+</div>
+</main>
+<script id="efan-v10-supabase-core">
+const SUPABASE_URL='https://eeontbxfmidpcuhguewk.supabase.co';
+const SUPABASE_KEY='sb_publishable_tJnMlEelfkEp3F9DSvOU2g_7KaWkY3T';
+var customers=window.customers=[]; var salesById={}; var salesIdByName={}; var editIndex=-1; var dataSource='supabase';
+function val(id){const e=document.getElementById(id);return e?e.value.trim():''}
+function normalize(v){return String(v||'').trim().toLocaleUpperCase('id-ID')}
+function escapeHtml(v){return String(v??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]))}
+function formatDate(d){if(!d)return '';const s=String(d).slice(0,10),m=s.match(/^(\d{4})-(\d{2})-(\d{2})$/);return m?`${m[3]}/${m[2]}/${m[1]}`:String(d)}
+function parseDateForInput(v){if(!v)return '';const s=String(v).slice(0,10);if(/^\d{4}-\d{2}-\d{2}$/.test(s))return s;const m=String(v).match(/^(\d{2})\/(\d{2})\/(\d{4})$/);return m?`${m[3]}-${m[2]}-${m[1]}`:''}
+async function api(path,options={}){const headers=Object.assign({'apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY,'Content-Type':'application/json'},options.headers||{});const r=await fetch(SUPABASE_URL+'/rest/v1/'+path,Object.assign({},options,{headers}));const text=await r.text();let body=null;try{body=text?JSON.parse(text):null}catch(_){}if(!r.ok){const msg=body?.message||body?.error_description||body?.hint||text||('HTTP '+r.status);throw new Error(msg)}return body}
+async function loadSales(){const data=await api('sales?select=id,name&order=name.asc');salesById={};salesIdByName={};(data||[]).forEach(s=>{salesById[s.id]=s.name;salesIdByName[normalize(s.name)]=s.id})}
+async function getOrCreateSalesId(name){const n=normalize(name);if(salesIdByName[n])return salesIdByName[n];const found=await api('sales?select=id,name&name=eq.'+encodeURIComponent(n));if(found?.length){salesById[found[0].id]=found[0].name;salesIdByName[normalize(found[0].name)]=found[0].id;return found[0].id}const created=await api('sales',{method:'POST',headers:{Prefer:'return=representation'},body:JSON.stringify({name:n})});const s=Array.isArray(created)?created[0]:created;salesById[s.id]=s.name;salesIdByName[normalize(s.name)]=s.id;return s.id}
+function mapCustomer(r){return{id:r.id,cid:r.cid_pelanggan||'',name:normalize(r.nama),cluster:normalize(r.cluster),pkg:normalize(r.paket),sales:salesById[r.sales_id]?normalize(salesById[r.sales_id]):'',sales_id:r.sales_id||null,dateISO:r.tanggal_terpasang||'',date:formatDate(r.tanggal_terpasang),installed:normalize(r.status)==='TERPASANG',status:r.status||''}}
+async function loadCustomers(showError=true){try{await loadSales();const data=await api('customers?select=id,cid_pelanggan,nama,cluster,paket,tanggal_terpasang,sales_id,status,created_at,updated_at&order=created_at.desc&limit=5000');customers=(data||[]).map(mapCustomer);window.customers=customers;dataSource='supabase';try{localStorage.setItem('reportTimEfanCustomers',JSON.stringify(customers))}catch(_){}render();if(typeof renderSaQuarter==='function')renderSaQuarter();if(typeof renderEfanV10Report==='function')renderEfanV10Report();setSyncBadge('✓ Terhubung ke Supabase')}catch(e){dataSource='local';try{customers=JSON.parse(localStorage.getItem('reportTimEfanCustomers')||'[]');window.customers=Array.isArray(customers)?customers:[]}catch(_){customers=[]}render();if(typeof renderSaQuarter==='function')renderSaQuarter();if(typeof renderEfanV10Report==='function')renderEfanV10Report();setSyncBadge('⚠ Supabase tidak dapat diakses');if(showError)console.error(e)}}
+function setSyncBadge(text){let el=document.getElementById('syncStatus');if(!el){el=document.createElement('div');el.id='syncStatus';el.style.cssText='position:fixed;right:12px;bottom:76px;z-index:30;padding:7px 10px;border-radius:999px;background:#eef2ff;color:#3949ab;font-size:11px;font-weight:700;box-shadow:0 3px 12px #0001';document.body.appendChild(el)}el.textContent=text}
+async function loadTargetRemote(){try{const d=await api('team_settings?select=target_closing&limit=1');if(d?.[0]?.target_closing!=null)document.getElementById('target').value=d[0].target_closing}catch(_){try{const t=localStorage.getItem('reportTimEfanTarget');if(t!=null)document.getElementById('target').value=t}catch(e){}}}
+async function saveTargetRemote(){const target=Math.max(0,Number(document.getElementById('target').value)||0);try{await api('team_settings',{method:'POST',headers:{Prefer:'resolution=merge-duplicates,return=minimal'},body:JSON.stringify({id:true,target_closing:target,updated_at:new Date().toISOString()})});localStorage.setItem('reportTimEfanTarget',String(target))}catch(e){console.error(e)}render()}
+function updateTarget(){saveTargetRemote()}
+async function addCustomer(){
+ const cid=val('cid'),name=normalize(val('name')),cluster=normalize(val('cluster')),pkg=normalize(val('pkg')),sales=normalize(val('sales')),d=document.getElementById('date')?.value||'';
+ if(!cid||!name||!cluster||!pkg||!sales){alert('Mohon isi ID Pelanggan, Nama, Cluster, Paket, dan Nama Sales.');return}
+ const btn=document.querySelector('button[onclick="addCustomer()"]');if(btn){btn.disabled=true;btn.textContent='MENYIMPAN...'}
+ try{const salesId=await getOrCreateSalesId(sales);const payload={cid_pelanggan:cid,nama:name,cluster,paket:pkg,tanggal_terpasang:d||null,sales_id:salesId,status:d?'Terpasang':'Belum Terpasang'};await api('customers',{method:'POST',headers:{Prefer:'return=minimal'},body:JSON.stringify(payload)});['cid','name','cluster','pkg','date','sales'].forEach(id=>{const e=document.getElementById(id);if(e)e.value=''});const msg=document.getElementById('formMessage');if(msg){msg.textContent='✓ SA berhasil disimpan ke database';msg.style.display='block';setTimeout(()=>msg.style.display='none',2500)}await loadCustomers(true)}catch(e){alert('Gagal menyimpan SA: '+(e.message||e))}finally{if(btn){btn.disabled=false;btn.textContent='SUBMIT SA'}}}
+function currentYM(){return new Date().toISOString().slice(0,7)}
+function monthLabelV16(ym){if(!/^\d{4}-\d{2}$/.test(String(ym||'')))return '';const [y,m]=ym.split('-').map(Number);return new Date(y,m-1,1).toLocaleDateString('id-ID',{month:'long',year:'numeric'})}
+function monthOptionsV16(){
+ const keys=[...new Set(customers.map(x=>String(x.dateISO||'').slice(0,7)).filter(v=>/^\d{4}-\d{2}$/.test(v)))].sort().reverse();
+ const now=currentYM(); if(!keys.includes(now))keys.unshift(now);
+ const cf=document.getElementById('customerMonthFilter'),rf=document.getElementById('rankingMonthFilter');
+ const oldC=cf?.value||now,oldR=rf?.value||now;
+ if(cf){cf.innerHTML='<option value="">Semua Bulan</option>'+keys.map(k=>`<option value="${k}">${monthLabelV16(k)}</option>`).join('');cf.value=keys.includes(oldC)?oldC:now}
+ if(rf){rf.innerHTML=keys.map(k=>`<option value="${k}">${monthLabelV16(k)}</option>`).join('');rf.value=keys.includes(oldR)?oldR:now}
+}
+function render(){
+ monthOptionsV16();
+ const q=val('search').toLowerCase(),sf=val('salesFilter').toLowerCase();
+ const cm=document.getElementById('customerMonthFilter')?.value||'';
+ const rm=document.getElementById('rankingMonthFilter')?.value||currentYM();
+ const data=customers.filter(x=>(!cm||String(x.dateISO||'').slice(0,7)===cm)&&(!q||[x.cid,x.name,x.cluster,x.pkg].join(' ').toLowerCase().includes(q))&&(!sf||String(x.sales||'').toLowerCase().includes(sf)));
+ const rows=document.getElementById('rows');
+ if(rows)rows.innerHTML=data.length?data.map(x=>{const i=customers.indexOf(x);return `<tr><td>${escapeHtml(x.cid)}</td><td><strong>${escapeHtml(x.name)}</strong></td><td>${escapeHtml(x.cluster)}</td><td>${escapeHtml(x.pkg)}</td><td>${escapeHtml(x.date||'—')}</td><td><button class="status ${x.installed?'installed':'pending'}" onclick="toggle(${i})">${x.installed?'✓ Terpasang':'Belum Terpasang'}</button></td><td>${escapeHtml(x.sales)}</td><td><div class="action-wrap"><button class="action-btn edit-btn" onclick="openEdit(${i})">✎ Edit</button><button class="action-btn delete-btn" onclick="deleteCustomer(${i})">Hapus</button></div></td></tr>`}).join(''):`<tr><td colspan="8" style="text-align:center;padding:25px;color:#718096">Belum ada data pelanggan${cm?' pada '+escapeHtml(monthLabelV16(cm)):''}.</td></tr>`;
+ const now=currentYM();
+ const totalMonth=customers.filter(x=>x.installed&&String(x.dateISO||'').slice(0,7)===now).length;
+ const target=Math.max(0,Number(document.getElementById('target')?.value)||0);
+ const saEl=document.getElementById('SA')||document.getElementById('closing');if(saEl)saEl.textContent=totalMonth;
+ const progress=document.getElementById('progress');if(progress)progress.textContent=target?Math.round(totalMonth/target*100)+'%':'0%';
+ const today=new Date().toISOString().slice(0,10),todayEl=document.getElementById('today');if(todayEl)todayEl.textContent=customers.filter(x=>x.dateISO===today&&x.installed).length;
+ const names=[...new Set(customers.map(x=>x.sales).filter(Boolean))].sort();
+ const rank=names.map(s=>({s,n:customers.filter(x=>x.sales===s&&x.installed&&String(x.dateISO||'').slice(0,7)===rm).length})).filter(x=>x.n>0).sort((a,b)=>b.n-a.n||a.s.localeCompare(b.s));
+ const r=document.getElementById('ranking'),rp=document.getElementById('rankingPeriod');
+ if(rp)rp.textContent='Periode: '+monthLabelV16(rm)+' · dihitung dari SA Terpasang pada bulan tersebut';
+ if(r)r.innerHTML=rank.map((x,i)=>`<div class="rank"><div><span class="ranknum">${i<3?['🥇','🥈','🥉'][i]:(i+1)+'.'}</span><strong>${escapeHtml(x.s)}</strong></div><div class="count">${x.n} SA</div></div>`).join('')||'<div class="muted">Belum ada data SA pada bulan tersebut.</div>';
+}
+
+async function toggle(i){const x=customers[i];if(!x?.id)return;const installed=!x.installed,date=installed?new Date().toISOString().slice(0,10):null;try{await api('customers?id=eq.'+encodeURIComponent(x.id),{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({status:installed?'Terpasang':'Belum Terpasang',tanggal_terpasang:date,updated_at:new Date().toISOString()})});await loadCustomers(true)}catch(e){alert('Gagal memperbarui status: '+e.message)}}
+async function openEdit(i){editIndex=i;const x=customers[i];if(!x)return;document.getElementById('eCid').value=x.cid||'';document.getElementById('eName').value=x.name||'';document.getElementById('eCluster').value=x.cluster||'';document.getElementById('ePkg').value=x.pkg||'';document.getElementById('eSales').value=x.sales||'';document.getElementById('eDate').value=parseDateForInput(x.dateISO||x.date||'');document.getElementById('editModal').classList.add('show')}
+function closeEdit(){document.getElementById('editModal').classList.remove('show');editIndex=-1}
+async function saveEdit(){if(editIndex<0)return;const x=customers[editIndex],cid=val('eCid'),name=normalize(val('eName')),cluster=normalize(val('eCluster')),pkg=normalize(val('ePkg')),sales=normalize(val('eSales')),d=document.getElementById('eDate')?.value||'';if(!cid||!name||!cluster||!pkg||!sales){alert('ID Pelanggan, Nama, Cluster, Paket, dan Nama Sales wajib diisi.');return}try{const salesId=await getOrCreateSalesId(sales);await api('customers?id=eq.'+encodeURIComponent(x.id),{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({cid_pelanggan:cid,nama:name,cluster,paket:pkg,tanggal_terpasang:d||null,sales_id:salesId,status:d?'Terpasang':'Belum Terpasang',updated_at:new Date().toISOString()})});closeEdit();await loadCustomers(true)}catch(e){alert('Gagal mengedit data: '+e.message)}}
+async function deleteCustomer(i){const x=customers[i];if(!x?.id)return;if(!confirm(`Hapus data pelanggan "${x.name||x.cid}"? Data yang dihapus tidak dapat dikembalikan.`))return;try{await api('customers?id=eq.'+encodeURIComponent(x.id),{method:'DELETE',headers:{Prefer:'return=minimal'}});await loadCustomers(true)}catch(e){alert('Gagal menghapus data: '+e.message)}}
+async function initSupabaseApp(){await loadTargetRemote();await loadCustomers(false);setInterval(()=>loadCustomers(false),10000)}
+initSupabaseApp();
+</script>
+<nav class="bottomnav">
+<a href="#dashboard" class="active" onclick="this.classList.add('active')"><span>⌂</span>Dashboard</a>
+<a href="#pelanggan" onclick="document.getElementById('search').focus()"><span>👥</span>Pelanggan</a>
+<a href="#ranking" onclick="document.getElementById('rankingPanel').scrollIntoView({behavior:'smooth'})"><span>🏆</span>Ranking</a>
+<a href="#profil"><span>👤</span>Profil</a>
+</nav><style id="saPopupStyle">.sa-pop-bg{display:none;position:fixed;inset:0;background:#0008;z-index:9999;align-items:center;justify-content:center;padding:12px}.sa-pop-bg.show{display:flex}.sa-pop{background:#fff;width:min(520px,100%);max-height:82vh;border-radius:16px;display:flex;flex-direction:column;overflow:hidden}.sa-pop-head{padding:14px 16px;display:flex;gap:10px;border-bottom:1px solid #eee}.sa-pop-head strong{flex:1}.sa-pop-search{margin:12px;padding:11px;border:1px solid #ccd3dd;border-radius:10px}.sa-pop-list{overflow-y:auto;max-height:60vh;padding:0 8px 10px}.sa-pop-item{width:100%;text-align:left;border:0;background:#fff;padding:12px;border-radius:9px;font-weight:600}.sa-pop-item:hover{background:#f1f5f9}@media(max-width:600px){.sa-pop-bg{align-items:flex-end;padding:0}.sa-pop{width:100%;max-height:85vh;border-radius:16px 16px 0 0}}</style><script>const SA_SALES=["ALVIAN DENILSON HALIM", "DWIKO JULI TARYADI", "GADING DWI ANGGORO", "NUGROHO DARU SAPUTRA", "NURUL AMALIA SHOLEHAH", "RICA VINO MARIYANA", "RIDHA NURAZIZAH", "RIZKY FATHURRAHMAN SYAHDIRA", "TOTO KAITA SETIA ADJIE", "WARDOYO"];const SA_PACKAGES=["RINGAN", "PAS", "ECONOMIS", "SAHABAT75", "NEO100", "VELO150", "NEXUS300", "PRIME500", "WONDER750", "ULTRA1GB", "MG SILVER250", "MG GOLD600", "MG DIAMOND750", "MG PLATINUM1G"] ;let saTarget=null,saVals=[];function openSaPicker(id,title,vals){saTarget=id;saVals=vals;document.getElementById('saPopTitle').textContent=title;document.getElementById('saPopSearch').value='';document.getElementById('saPop').classList.add('show');renderSaPicker();setTimeout(()=>document.getElementById('saPopSearch').focus(),50)}function renderSaPicker(){const q=document.getElementById('saPopSearch').value.toUpperCase();const a=saVals.filter(x=>x.includes(q));const list=document.getElementById('saPopList');list.innerHTML='';a.forEach(v=>{const b=document.createElement('button');b.type='button';b.className='sa-pop-item';b.textContent=v;b.onclick=()=>chooseSaPicker(v);list.appendChild(b)});if(!a.length)list.innerHTML='<div style="padding:20px;text-align:center">Tidak ditemukan</div>'}function chooseSaPicker(v){const e=document.getElementById(saTarget);if(e){e.value=v;e.dispatchEvent(new Event('input',{bubbles:true}));e.dispatchEvent(new Event('change',{bubbles:true}))}closeSaPicker()}function closeSaPicker(){document.getElementById('saPop').classList.remove('show')}document.addEventListener('keydown',e=>{if(e.key==='Escape')closeSaPicker()})</script><div id="saPop" class="sa-pop-bg" onclick="if(event.target===this)closeSaPicker()"><div class="sa-pop"><div class="sa-pop-head"><strong id="saPopTitle">Pilih</strong><button type="button" onclick="closeSaPicker()">Tutup</button></div><input id="saPopSearch" class="sa-pop-search" type="search" placeholder="Ketik kata kunci..."><div id="saPopList" class="sa-pop-list"></div></div></div><section id="saReports" class="panel" style="margin-top:18px"><h2>Perbandingan SA & Rekap Kuartal</h2><div class="muted" style="margin-bottom:12px">Perbandingan dibuat otomatis per kuartal. Tidak perlu memilih bulan.</div><div id="saQuarterCards"></div></section><script>
+function ym(v){return String(v||'').slice(0,7)}
+function monthLabel(ymk){if(!ymk)return '';const [y,m]=ymk.split('-').map(Number);return new Date(y,m-1,1).toLocaleDateString('id-ID',{month:'long'})}
+function monthNum(ymk){return Number(String(ymk).slice(5,7))}
+function quarterOf(m){return Math.floor((m-1)/3)+1}
+function qMonths(q){return [q*3-2,q*3-1,q*3]}
+function countSA(sales,ymk){return customers.filter(x=>ym(x.dateISO||x.created_at||x.date)===ymk&&(!sales||(x.sales||'').toUpperCase()===sales.toUpperCase())).length}
+function renderSaQuarter(){
+ const months=[...new Set(customers.map(x=>ym(x.dateISO||x.created_at||x.date)).filter(v=>/^\d{4}-\d{2}$/.test(v)))].sort();
+ const years=[...new Set(months.map(v=>v.slice(0,4)))].sort().reverse();
+ const names=[...new Set(customers.map(x=>x.sales).filter(Boolean))].sort();
+ let out='';
+ years.forEach(year=>{
+  [1,2,3,4].forEach(q=>{
+   const nums=qMonths(q), keys=nums.map(n=>year+'-'+String(n).padStart(2,'0'));
+   if(!keys.some(k=>months.includes(k)))return;
+   out+=`<div class="quarter-card"><div class="quarter-title">Kuartal ${q} ${year} <span class="muted" style="font-weight:500">· ${monthLabel(keys[0])} – ${monthLabel(keys[2])}</span></div><div class="quarter-table"><table><thead><tr><th>Sales</th>${keys.map(k=>'<th>'+monthLabel(k)+'</th>').join('')}<th>Total 3 Bulan</th></tr></thead><tbody>`;
+   names.forEach(s=>{
+    const vals=keys.map(k=>countSA(s,k));
+    out+=`<tr><td><strong>${escapeHtml(s)}</strong></td>`;
+    vals.forEach((v,i)=>{let diff=i?v-vals[i-1]:null;let diffHtml=diff===null?'':diff>0?` <span class="diff-up">(+${diff} SA Dari Bulan Lalu)</span>`:diff<0?` <span class="diff-down">(${diff} SA Dari Bulan Lalu)</span>`:` <span class="diff-zero">(0 SA)</span>`;out+=`<td>${v} SA${diffHtml}</td>`});
+    out+=`<td><strong>${vals.reduce((a,b)=>a+b,0)} SA</strong></td></tr>`;
+   });
+   const totals=keys.map(k=>countSA('',k));
+   out+=`<tr style="background:#f8fafc"><td><strong>Total Tim</strong></td>${totals.map(v=>`<td><strong>${v} SA</strong></td>`).join('')}<td><strong>${totals.reduce((a,b)=>a+b,0)} SA</strong></td></tr>`;
+   out+='</tbody></table></div></div>';
+  });
+ });
+ document.getElementById('saQuarterCards').innerHTML=out||'<div class="muted">Belum ada data SA yang cukup untuk membuat rekap kuartal.</div>';
+}
+renderSaQuarter();
+</script>
+<script id="efan-max10-rows-script-v5">
+(function(){
+  function applyCustomerScroll(){
+    ["customerTable","customersTable","dataPelangganTable","customer-data-table"].forEach(function(id){
+      const table=document.getElementById(id);
+      if(table && table.parentElement) table.parentElement.classList.add("customer-table-wrap");
+    });
+    document.querySelectorAll("table").forEach(function(table){
+      const t=(table.innerText||"").toUpperCase();
+      if(t.includes("ID PELANGGAN") && t.includes("ACTION") && table.parentElement){
+        table.parentElement.classList.add("customer-table-wrap");
+      }
+    });
+  }
+  if(document.readyState==="loading") document.addEventListener("DOMContentLoaded",applyCustomerScroll);
+  else applyCustomerScroll();
+  new MutationObserver(applyCustomerScroll).observe(document.documentElement,{childList:true,subtree:true});
+})();
+</script>
+
+<script id="efan-v6-auto-caps">
+(function(){
+  const wanted = new Set([
+    "cid","nama","cluster","pkg","sales",
+    "editCid","editNama","editCluster","editPkg","editSales",
+    "salesFilter","packageFilter","search","searchCustomer"
+  ]);
+  function upper(el){
+    if(!el || !("value" in el)) return;
+    const old=el.value, pos=el.selectionStart, end=el.selectionEnd;
+    const next=old.toLocaleUpperCase("id-ID");
+    if(old!==next){
+      el.value=next;
+      try{ if(pos!==null) el.setSelectionRange(pos,end); }catch(_){}
+    }
+  }
+  function bind(root=document){
+    root.querySelectorAll("input,textarea").forEach(el=>{
+      if(wanted.has(el.id) || el.dataset.autoCaps==="1"){
+        if(el.dataset.capsV6==="1") return;
+        el.dataset.capsV6="1";
+        ["input","change"].forEach(ev=>el.addEventListener(ev,()=>upper(el)));
+        el.addEventListener("paste",()=>setTimeout(()=>upper(el),0));
+        upper(el);
+      }
+    });
+  }
+  document.addEventListener("input",e=>{
+    if(e.target && wanted.has(e.target.id)) upper(e.target);
+  });
+  new MutationObserver(m=>m.forEach(x=>x.addedNodes.forEach(n=>{
+    if(n.nodeType===1) bind(n);
+  }))).observe(document.documentElement,{childList:true,subtree:true});
+  if(document.readyState==="loading") document.addEventListener("DOMContentLoaded",()=>bind());
+  else bind();
+})();
+</script>
+
+
+<section id="efanV6Report" class="efan-v9-report">
+  <div class="efan-v9-card efan-v9-sales-card">
+    <h3>Rekap Closing Sales per Bulan</h3>
+    <div id="efanV9SalesMonth" class="efan-v9-month">Agustus 2026</div>
+    <div class="efan-v9-total" id="efanV9Total">0 Closing</div>
+    <div id="efanV9SalesList" class="efan-v9-list"></div>
+  </div>
+
+  <div class="efan-v9-card efan-v9-package-card">
+    <h3>Penjualan per Paket</h3>
+    <div class="efan-v9-subtitle">Rekap mengikuti bulan yang dipilih.</div>
+    <div id="efanV9PackageList" class="efan-v9-list"></div>
+  </div>
+</section>
+
+<script id="efan-v9-report-script">
+(function(){
+  const PACKAGES=[
+    "RINGAN","PAS","ECONOMIS","SAHABAT75","NEO100","VELO150","NEXUS300",
+    "PRIME500","WONDER750","ULTRA1GB","MG SILVER250","MG GOLD600",
+    "MG DIAMOND750","MG PLATINUM1G"
+  ];
+  function monthNow(){return new Date().toISOString().slice(0,7)}
+  function monthLabel(m){
+    const [y,mo]=m.split("-");
+    const n=["Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"];
+    return n[Number(mo)-1]+" "+y;
+  }
+  function esc(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+  window.renderEfanV10Report=function(){
+    const month=monthNow();
+    const data=(Array.isArray(window.customers)?window.customers:[]).filter(x=>
+      x.installed && String(x.dateISO||"").slice(0,7)===month
+    );
+    const sales={},packs={};
+    data.forEach(x=>{
+      const s=String(x.sales||"TANPA SALES").toLocaleUpperCase("id-ID").trim();
+      const p=String(x.pkg||"TANPA PAKET").toLocaleUpperCase("id-ID").trim();
+      sales[s]=(sales[s]||0)+1;
+      packs[p]=(packs[p]||0)+1;
+    });
+    const salesArr=Object.entries(sales).sort((a,b)=>b[1]-a[1]||a[0].localeCompare(b[0]));
+    const packArr=PACKAGES.map(p=>[p,packs[p]||0]).filter(x=>x[1]>0)
+      .sort((a,b)=>b[1]-a[1]||a[0].localeCompare(b[0]));
+
+    const monthEl=document.getElementById("efanV9SalesMonth");
+    const totalEl=document.getElementById("efanV9Total");
+    const salesEl=document.getElementById("efanV9SalesList");
+    const packEl=document.getElementById("efanV9PackageList");
+    if(monthEl)monthEl.textContent=monthLabel(month);
+    if(totalEl)totalEl.textContent=data.length+" SA";
+    if(salesEl)salesEl.innerHTML=salesArr.length
+      ? salesArr.map(x=>`<div class="efan-v9-sales-row"><span>${esc(x[0])}: ${x[1]} SA</span></div>`).join("")
+      : `<div class="efan-v9-empty">Belum ada SA pada bulan ini.</div>`;
+    if(packEl)packEl.innerHTML=packArr.length
+      ? packArr.map((x,i)=>`<div class="efan-v9-package-row"><span><b>${i+1}. ${esc(x[0])}</b></span><strong>${x[1]} SA</strong></div>`).join("")
+      : `<div class="efan-v9-empty">Belum ada penjualan paket pada bulan ini.</div>`;
+  };
+  document.addEventListener("DOMContentLoaded",()=>setTimeout(window.renderEfanV10Report,500));
+})();
+</script>
+
+
+
+
+<script id="efan-v7-submitted-name-caps">
+(function(){
+  function upper(v){return String(v ?? "").toLocaleUpperCase("id-ID");}
+
+  // Normalize customer name before submit/save, including common form submit handlers.
+  function normalizeCustomerFields(){
+    ["nama","editNama"].forEach(id=>{
+      const el=document.getElementById(id);
+      if(el && "value" in el) el.value=upper(el.value);
+    });
+  }
+
+  // Normalize the rendered customer rows as a safety net, so already-submitted
+  // names also display in CAPS LOCK even if older records were stored lowercase.
+  function normalizeRenderedNames(){
+    const tables=document.querySelectorAll("table");
+    tables.forEach(table=>{
+      const headers=[...table.querySelectorAll("thead th")].map(x=>(x.textContent||"").trim().toUpperCase());
+      const nameIndex=headers.findIndex(x=>x==="NAMA" || x==="NAMA PELANGGAN");
+      if(nameIndex<0) return;
+      table.querySelectorAll("tbody tr").forEach(row=>{
+        const cells=row.querySelectorAll("td");
+        if(cells[nameIndex]) cells[nameIndex].textContent=upper(cells[nameIndex].textContent);
+      });
+    });
+  }
+
+  document.addEventListener("submit", normalizeCustomerFields, true);
+  document.addEventListener("click", function(e){
+    const t=e.target;
+    if(t && /submit|simpan|save|tambah|add/i.test((t.textContent||""))){
+      normalizeCustomerFields();
+      setTimeout(normalizeRenderedNames,100);
+    }
+  }, true);
+
+  new MutationObserver(()=>setTimeout(normalizeRenderedNames,0))
+    .observe(document.documentElement,{childList:true,subtree:true});
+
+  if(document.readyState==="loading"){
+    document.addEventListener("DOMContentLoaded",()=>{normalizeCustomerFields();normalizeRenderedNames()});
+  }else{
+    normalizeCustomerFields(); normalizeRenderedNames();
+  }
+})();
+</script>
+
+<script id="efan-v13-diagnostic">
+window.addEventListener("error", function(e){
+  console.error("Report Tim Efan error:", e.error || e.message);
+});
+window.addEventListener("unhandledrejection", function(e){
+  console.error("Report Tim Efan promise error:", e.reason);
+});
+</script>
+</body></html>
