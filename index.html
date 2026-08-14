@@ -632,7 +632,7 @@ function parseDateForInput(v){if(!v)return '';const s=String(v).slice(0,10);if(/
 async function api(path,options={}){const headers=Object.assign({'apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY,'Content-Type':'application/json'},options.headers||{});const r=await fetch(SUPABASE_URL+'/rest/v1/'+path,Object.assign({},options,{headers}));const text=await r.text();let body=null;try{body=text?JSON.parse(text):null}catch(_){}if(!r.ok){const msg=body?.message||body?.error_description||body?.hint||text||('HTTP '+r.status);throw new Error(msg)}return body}
 async function loadSales(){const data=await api('sales?select=id,name&order=name.asc');salesById={};salesIdByName={};(data||[]).forEach(s=>{salesById[s.id]=s.name;salesIdByName[normalize(s.name)]=s.id})}
 async function getOrCreateSalesId(name){const n=normalize(name);if(salesIdByName[n])return salesIdByName[n];const found=await api('sales?select=id,name&name=eq.'+encodeURIComponent(n));if(found?.length){salesById[found[0].id]=found[0].name;salesIdByName[normalize(found[0].name)]=found[0].id;return found[0].id}const created=await api('sales',{method:'POST',headers:{Prefer:'return=representation'},body:JSON.stringify({name:n})});const s=Array.isArray(created)?created[0]:created;salesById[s.id]=s.name;salesIdByName[normalize(s.name)]=s.id;return s.id}
-function mapCustomer(r){return{id:r.id,cid:r.cid_pelanggan||'',name:normalize(r.nama),cluster:normalize(r.cluster),pkg:normalize(r.paket),sales:salesById[r.sales_id]?normalizeSalesName(salesById[r.sales_id]):'',sales_id:r.sales_id||null,dateISO:efanDateOnly(r.tanggal_terpasang),date:formatDate(r.tanggal_terpasang),installed:normalize(r.status)==='TERPASANG',status:r.status||''}}
+function mapCustomer(r){return{id:r.id,cid:r.cid_pelanggan||'',name:normalize(r.nama),cluster:normalize(r.cluster),pkg:normalize(r.paket),sales:salesById[r.sales_id]?normalizeSalesName(salesById[r.sales_id]):'',sales_id:r.sales_id||null,dateISO:efanDateOnly(r.tanggal_terpasang),date:formatDate(r.tanggal_terpasang),installed:normalize(r.status)==='TERPASANG',status:r.status||'',createdAt:r.created_at||null,submitDateISO:r.created_at?efanDateOnly(r.created_at):''}}
 async function loadCustomers(showError=true){try{await loadSales();const data=await api('customers?select=id,cid_pelanggan,nama,cluster,paket,tanggal_terpasang,sales_id,status,created_at,updated_at&order=created_at.desc&limit=5000');customers=(data||[]).map(mapCustomer);window.customers=customers;dataSource='supabase';try{localStorage.setItem('reportTimEfanCustomers',JSON.stringify(customers))}catch(_){}await loadBillingRecords();render();if(typeof renderSaQuarter==='function')renderSaQuarter();if(typeof renderEfanV10Report==='function')renderEfanV10Report();setSyncBadge('✓ Terhubung ke Supabase')}catch(e){dataSource='local';try{customers=JSON.parse(localStorage.getItem('reportTimEfanCustomers')||'[]');customers=Array.isArray(customers)?customers.map(x=>({...x,sales:normalizeSalesName(x.sales)})):[];window.customers=customers}catch(_){customers=[]}try{billingRecords=JSON.parse(localStorage.getItem('reportTimEfanBillingRecords')||'{}')||{}}catch(_){billingRecords={}}window.billingRecords=billingRecords;render();if(typeof renderSaQuarter==='function')renderSaQuarter();if(typeof renderEfanV10Report==='function')renderEfanV10Report();setSyncBadge('⚠ Supabase tidak dapat diakses');if(showError)console.error(e)}}
 function setSyncBadge(text){let el=document.getElementById('syncStatus');if(!el){el=document.createElement('div');el.id='syncStatus';el.style.cssText='position:fixed;right:12px;bottom:76px;z-index:30;padding:7px 10px;border-radius:999px;background:#eef2ff;color:#3949ab;font-size:11px;font-weight:700;box-shadow:0 3px 12px #0001';document.body.appendChild(el)}el.textContent=text}
 async function loadTargetRemote(){try{const d=await api('team_settings?select=target_closing&limit=1');if(d?.[0]?.target_closing!=null)document.getElementById('target').value=d[0].target_closing}catch(_){try{const t=localStorage.getItem('reportTimEfanTarget');if(t!=null)document.getElementById('target').value=t}catch(e){}}}
@@ -691,31 +691,34 @@ async function addCustomer(){
   const salesId=await getOrCreateSalesId(parsed.sales);
   /* Submit SA selalu masuk sebagai BELUM TERPASANG. Tanggal baru diisi saat tombol Terpasang diklik. */
   const payload={cid_pelanggan:parsed.cid,nama:name,cluster:parsed.cluster,paket:parsed.pkg,tanggal_terpasang:null,sales_id:salesId,status:'Belum Terpasang'};
-  await api('customers',{method:'POST',headers:{Prefer:'return=minimal'},body:JSON.stringify(payload)});
+  const inserted=await api('customers',{method:'POST',headers:{Prefer:'return=representation'},body:JSON.stringify(payload)});
+  const insertedRow=Array.isArray(inserted)?inserted[0]:inserted;
+  if(insertedRow){customers=[mapCustomer(insertedRow),...customers];window.customers=customers;try{localStorage.setItem('reportTimEfanCustomers',JSON.stringify(customers))}catch(_){}render();if(typeof renderSaQuarter==='function')renderSaQuarter();if(typeof renderEfanV10Report==='function')renderEfanV10Report()}
   ['name','fabText'].forEach(id=>{const e=document.getElementById(id);if(e)e.value=''});
   showParsedFabPreview(null);
   const msg=document.getElementById('formMessage');if(msg){msg.textContent='✓ SA berhasil disimpan sebagai BELUM TERPASANG';msg.style.display='block';setTimeout(()=>msg.style.display='none',3000)}
   await loadCustomers(true);
- }catch(e){alert('Gagal menyimpan SA: '+(e.message||e))}
+ }catch(e){const msg=String(e?.message||e);if(/duplicate key|unique constraint|customers_cid_pelanggan_key/i.test(msg))alert('Customer ID tersebut sudah ada di report. Gunakan Customer ID yang berbeda.');else alert('Gagal menyimpan SA: '+msg)}
  finally{if(btn){btn.disabled=false;btn.textContent='3. SUBMIT SA'}}
 }
 function currentYM(){return efanCurrentYM()}
 function monthLabelV16(ym){if(!/^\d{4}-\d{2}$/.test(String(ym||'')))return '';const [y,m]=ym.split('-').map(Number);return new Date(y,m-1,1).toLocaleDateString('id-ID',{month:'long',year:'numeric'})}
 function monthOptionsV16(){
- const keys=[...new Set(customers.map(x=>String(x.dateISO||'').slice(0,7)).filter(v=>/^\d{4}-\d{2}$/.test(v)))].sort().reverse();
+ const keys=[...new Set(customers.flatMap(x=>[x.dateISO,x.submitDateISO]).map(v=>String(v||'').slice(0,7)).filter(v=>/^\d{4}-\d{2}$/.test(v)))].sort().reverse();
  const now=currentYM(); if(!keys.includes(now))keys.unshift(now);
  const cf=document.getElementById('customerMonthFilter'),rf=document.getElementById('rankingMonthFilter');
  const oldC=cf?.value||now,oldR=rf?.value||now;
  if(cf){cf.innerHTML='<option value="">Semua Bulan</option>'+keys.map(k=>`<option value="${k}">${monthLabelV16(k)}</option>`).join('');cf.value=keys.includes(oldC)?oldC:now}
  if(rf){rf.innerHTML=keys.map(k=>`<option value="${k}">${monthLabelV16(k)}</option>`).join('');rf.value=keys.includes(oldR)?oldR:now}
 }
+function customerMonthISO(x){return String(x?.dateISO||x?.submitDateISO||'').slice(0,7)}
 function render(){
  monthOptionsV16();
  const q=val('search').toLowerCase(),sf=val('salesFilter').toLowerCase();
  const cm=document.getElementById('customerMonthFilter')?.value||'';
  const rm=document.getElementById('rankingMonthFilter')?.value||currentYM();
  const data=customers.filter(x=>{
-   const basic=(!cm||String(x.dateISO||'').slice(0,7)===cm)&&(!q||[x.cid,x.name,x.cluster,x.pkg].join(' ').toLowerCase().includes(q))&&(!sf||String(x.sales||'').toLowerCase().includes(sf));
+   const basic=(!cm||customerMonthISO(x)===cm)&&(!q||[x.cid,x.name,x.cluster,x.pkg].join(' ').toLowerCase().includes(q))&&(!sf||String(x.sales||'').toLowerCase().includes(sf));
    if(!basic)return false;
    if(window.billingFilter && window.billingFilter!=='all'){
      const bi=billingInfoFor(x);
