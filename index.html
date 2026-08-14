@@ -562,7 +562,7 @@ function efanDateOnly(v){const s=String(v??'').trim();let m=s.match(/^(\d{4})-(\
 <section class="panel" id="rankingPanel"><div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px"><h2 style="margin:0;flex:1">Ranking Sales</h2><div><label for="rankingMonthFilter" style="display:block;font-size:11px;font-weight:800;color:#718096;margin-bottom:4px">BULAN RANKING</label><select id="rankingMonthFilter" onchange="render()" style="min-height:40px;padding:8px 10px;border:1px solid #d5dce7;border-radius:9px;background:#fff;font-size:14px"><option value="">Bulan ini</option></select></div></div><div id="rankingPeriod" class="muted" style="margin-bottom:8px"></div><div id="ranking"></div></section>
 </div>
 <script id="efan-v26-submit-fab-events">
-document.addEventListener('input',function(e){if(e.target?.id==='name')e.target.value=normalize(e.target.value);if(e.target?.id==='fabText')showParsedFabPreview(parseFabSabrina(e.target.value));});
+document.addEventListener('input',function(e){if(e.target?.id==='name')e.target.value=String(e.target.value||'').toLocaleUpperCase('id-ID');if(e.target?.id==='fabText')showParsedFabPreview(parseFabSabrina(e.target.value));});
 </script>
 </main>
 <style id="efan-billing-filter-buttons">
