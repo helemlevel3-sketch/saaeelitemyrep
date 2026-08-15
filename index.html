@@ -828,10 +828,40 @@ function renderEditSalesPicker(){
   filtered.forEach(v=>{
     const b=document.createElement('button');
     b.type='button'; b.className='sa-pop-item'; b.textContent=v;
-    b.addEventListener('click',function(ev){ev.preventDefault();ev.stopPropagation();chooseEditSales(v);},{passive:false});
+    let pressTimer=null, longPressed=false;
+    const startPress=()=>{ longPressed=false; clearTimeout(pressTimer); pressTimer=setTimeout(()=>{ longPressed=true; deleteSalesByName(v); },650); };
+    const cancelPress=()=>{ clearTimeout(pressTimer); };
+    b.addEventListener('pointerdown',startPress,{passive:true});
+    b.addEventListener('pointerup',cancelPress,{passive:true});
+    b.addEventListener('pointerleave',cancelPress,{passive:true});
+    b.addEventListener('pointercancel',cancelPress,{passive:true});
+    b.addEventListener('click',function(ev){ev.preventDefault();ev.stopPropagation();if(longPressed){longPressed=false;return;}chooseEditSales(v);},{passive:false});
+    b.title='Tekan lama untuk menghapus sales';
     list.appendChild(b);
   });
   if(!filtered.length)list.innerHTML='<div style="padding:20px;text-align:center;color:#718096">Sales tidak ditemukan</div>';
+}
+
+async function deleteSalesByName(name){
+  const clean=normalizeSalesName(name);
+  const id=salesIdByName[normalize(clean)];
+  if(!id){alert('Sales tidak ditemukan.');return;}
+  if(!confirm(`Hapus nama sales "${clean}" dari daftar?`))return;
+  try{
+    const used=await api('customers?select=id&sales_id=eq.'+encodeURIComponent(id)+'&limit=1');
+    if(Array.isArray(used)&&used.length){
+      alert(`Nama sales ${clean} masih digunakan oleh data pelanggan. Edit/pindahkan data pelanggan terlebih dahulu sebelum menghapus sales ini.`);
+      return;
+    }
+    await api('sales?id=eq.'+encodeURIComponent(id),{method:'DELETE',headers:{Prefer:'return=minimal'}});
+    delete salesById[id];
+    delete salesIdByName[normalize(clean)];
+    window.saEditSalesValues=getPickerSales();
+    renderEditSalesPicker();
+    pushRegisterSalesOptions();
+    render();
+    alert(`✓ ${clean} berhasil dihapus.`);
+  }catch(e){alert('Gagal menghapus sales: '+(e.message||e))}
 }
 function chooseEditSales(v){
   const e=document.getElementById('eSales');
