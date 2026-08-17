@@ -660,7 +660,7 @@ async function getOrCreateSalesId(name){
  if(resolved)return resolved.id;
  throw new Error('Sales Name dari FAB tidak cocok dengan nama Sales yang tersedia: '+String(name||'').trim()+'. Periksa kata kunci Sales Name.');
 }
-function mapCustomer(r){return{id:r.id,cid:r.cid_pelanggan||'',name:normalize(r.nama),cluster:normalize(r.cluster),pkg:normalize(r.paket),sales:salesById[r.sales_id]?normalizeSalesName(salesById[r.sales_id]):'',sales_id:r.sales_id||null,dateISO:efanDateOnly(r.tanggal_terpasang),date:formatDate(r.tanggal_terpasang),installed:normalize(r.status)==='TERPASANG',status:r.status||''}}
+function mapCustomer(r){return{id:r.id,cid:r.cid_pelanggan||'',name:normalize(r.nama),cluster:normalize(r.cluster),pkg:normalize(r.paket),sales:salesById[r.sales_id]?normalizeSalesName(salesById[r.sales_id]):'',sales_id:r.sales_id||null,dateISO:efanDateOnly(r.tanggal_terpasang),date:formatDate(r.tanggal_terpasang),installed:normalize(r.status)==='TERPASANG',status:r.status||'',created_at:r.created_at||''}}
 async function loadCustomers(showError=true){try{await loadSales();const data=await api('customers?select=id,cid_pelanggan,nama,cluster,paket,tanggal_terpasang,sales_id,status,created_at,updated_at&order=created_at.desc&limit=5000');customers=(data||[]).map(mapCustomer);window.customers=customers;dataSource='supabase';try{localStorage.setItem('reportTimEfanCustomers',JSON.stringify(customers))}catch(_){}await loadBillingRecords();render();if(typeof renderSaQuarter==='function')renderSaQuarter();if(typeof renderEfanV10Report==='function')renderEfanV10Report();setSyncBadge('✓ Terhubung ke Supabase')}catch(e){dataSource='local';try{customers=JSON.parse(localStorage.getItem('reportTimEfanCustomers')||'[]');customers=Array.isArray(customers)?customers.map(x=>({...x,sales:normalizeSalesName(x.sales)})):[];window.customers=customers}catch(_){customers=[]}try{billingRecords=JSON.parse(localStorage.getItem('reportTimEfanBillingRecords')||'{}')||{}}catch(_){billingRecords={}}window.billingRecords=billingRecords;render();if(typeof renderSaQuarter==='function')renderSaQuarter();if(typeof renderEfanV10Report==='function')renderEfanV10Report();setSyncBadge('⚠ Supabase tidak dapat diakses');if(showError)console.error(e)}}
 function setSyncBadge(text){let el=document.getElementById('syncStatus');if(!el){el=document.createElement('div');el.id='syncStatus';el.style.cssText='position:fixed;right:12px;bottom:76px;z-index:30;padding:7px 10px;border-radius:999px;background:#eef2ff;color:#3949ab;font-size:11px;font-weight:700;box-shadow:0 3px 12px #0001';document.body.appendChild(el)}el.textContent=text}
 async function loadTargetRemote(){try{const d=await api('team_settings?select=target_closing&limit=1');if(d?.[0]?.target_closing!=null)document.getElementById('target').value=d[0].target_closing}catch(_){try{const t=localStorage.getItem('reportTimEfanTarget');if(t!=null)document.getElementById('target').value=t}catch(e){}}}
@@ -745,7 +745,8 @@ function render(){
  const cm=document.getElementById('customerMonthFilter')?.value||'';
  const rm=document.getElementById('rankingMonthFilter')?.value||currentYM();
  const data=customers.filter(x=>{
-   const basic=(!cm||String(x.dateISO||'').slice(0,7)===cm)&&(!q||[x.cid,x.name,x.cluster,x.pkg].join(' ').toLowerCase().includes(q))&&(!sf||String(x.sales||'').toLowerCase().includes(sf));
+   const monthKey=x.dateISO?String(x.dateISO).slice(0,7):String(x.created_at||'').slice(0,7);
+   const basic=(!cm||monthKey===cm)&&(!q||[x.cid,x.name,x.cluster,x.pkg].join(' ').toLowerCase().includes(q))&&(!sf||String(x.sales||'').toLowerCase().includes(sf));
    if(!basic)return false;
    if(window.billingFilter && window.billingFilter!=='all'){
      const bi=billingInfoFor(x);
