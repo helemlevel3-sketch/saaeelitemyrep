@@ -557,6 +557,15 @@ function efanDateOnly(v){const s=String(v??'').trim();let m=s.match(/^(\d{4})-(\
 </div>
 <div class="toolbar efan-month-toolbar"><select id="customerMonthFilter" onchange="render()" aria-label="Filter pelanggan per bulan"><option value="">Semua Bulan</option></select><input id="search" placeholder="Cari ID / nama / cluster..." oninput="render()"><input id="salesFilter" placeholder="Filter nama sales..." oninput="render()"></div>
 <div id="billingSummary" class="billing-panel"><strong>Pengingat Tagihan</strong><span id="billingSummaryText">Memuat status tagihan...</span></div>
+<div id="pushPanel" class="push-panel">
+  <div><strong>🔔 Notifikasi Website</strong><div id="pushStatus" class="muted" style="margin-top:4px">Aktifkan notifikasi untuk menerima pengingat SA belum terpasang dan tagihan jatuh tempo.</div></div>
+  <div class="push-controls">
+    <select id="pushSalesSelect" aria-label="Pilih sales untuk notifikasi"><option value="">Pilih Nama Sales</option></select>
+    <button type="button" id="selectAllPushBtn" onclick="enablePushAllNotifications()">PILIH SEMUA</button>
+    <button type="button" id="enablePushBtn" onclick="enablePushNotifications()">AKTIFKAN NOTIFIKASI</button>
+    <button type="button" id="disablePushBtn" onclick="disablePushNotifications()" style="display:none">MATIKAN NOTIFIKASI</button>
+  </div>
+</div>
 <div class="tablewrap"><table><thead><tr><th>ID Pelanggan</th><th>Nama</th><th>Cluster</th><th>Paket</th><th>Tanggal Terpasang</th><th>Status</th><th>Tagihan</th><th>Sales</th><th>Action</th></tr></thead><tbody id="rows"></tbody></table></div>
 </section>
 <section class="panel" id="rankingPanel"><div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px"><h2 style="margin:0;flex:1">Ranking Sales</h2><div><label for="rankingMonthFilter" style="display:block;font-size:11px;font-weight:800;color:#718096;margin-bottom:4px">BULAN RANKING</label><select id="rankingMonthFilter" onchange="render()" style="min-height:40px;padding:8px 10px;border:1px solid #d5dce7;border-radius:9px;background:#fff;font-size:14px"><option value="">Bulan ini</option></select></div></div><div id="rankingPeriod" class="muted" style="margin-bottom:8px"></div><div id="ranking"></div></section>
@@ -565,6 +574,11 @@ function efanDateOnly(v){const s=String(v??'').trim();let m=s.match(/^(\d{4})-(\
 document.addEventListener('input',function(e){if(e.target?.id==='name')e.target.value=String(e.target.value||'').toLocaleUpperCase('id-ID');if(e.target?.id==='fabText')showParsedFabPreview(parseFabSabrina(e.target.value));});
 </script>
 </main>
+<style id="efan-web-push-style">
+.push-panel{margin:14px 0;padding:13px 14px;border:1px solid #dbe3f0;border-radius:12px;background:#f8fbff;display:flex;gap:12px;align-items:center;justify-content:space-between}
+.push-panel strong{font-size:14px;color:#1e293b}.push-controls{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.push-controls select,.push-controls button{min-height:38px;border:1px solid #d5dce7;border-radius:9px;padding:8px 11px;background:#fff;font-weight:700}.push-controls button{background:#3949ab;color:#fff;border:0;cursor:pointer}.push-controls button:disabled{opacity:.6;cursor:wait}
+@media(max-width:700px){.push-panel{display:block}.push-controls{display:grid;grid-template-columns:1fr;margin-top:10px}.push-controls select,.push-controls button{width:100%}}
+</style>
 <style id="efan-billing-filter-buttons">
 .billing-summary-buttons{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-left:10px}
 .billing-summary-btn{width:auto!important;min-height:34px;padding:7px 11px!important;border:1px solid #e2e8f0!important;border-radius:999px!important;background:#fff!important;color:#334155!important;font-weight:800!important;cursor:pointer;transition:.15s}
@@ -614,6 +628,8 @@ function renderBillingSummary(){
 <script id="efan-v10-supabase-core">
 const SUPABASE_URL='https://eeontbxfmidpcuhguewk.supabase.co';
 const SUPABASE_KEY='sb_publishable_tJnMlEelfkEp3F9DSvOU2g_7KaWkY3T';
+const VAPID_PUBLIC_KEY='BK-Z6mBjef8wt70PX16RgTeLrfhjnCHtWVCXEDaJxSg5pHGOvOdBZCGr1duzxFBMbXiiph6M--fyWPrVfNDeNd4';
+const PUSH_FUNCTION_URL=SUPABASE_URL+'/functions/v1/push-subscription';
 var customers=window.customers=[]; var salesById={}; var salesIdByName={}; var editIndex=-1; var dataSource='supabase';
 const DEFAULT_SA_SALES=["ALVIAN DENILSON HALIM","DWIKO JULI TARYADI","GADING DWI ANGGORO","NUGROHO DARU SAPUTRO, S.E","NURUL AMALIA SHOLEHA","RICA VINO MARIYANA","RIDHA NURAZIZAH","RIZKY FATHURRAHMAN SYAHDIRA","TOTO KAITA SETIA ADJIE","WARDOYO"];
 const SALES_NAME_ALIASES={
@@ -631,47 +647,39 @@ function formatDate(d){if(!d)return '';const s=String(d).slice(0,10),m=s.match(/
 function parseDateForInput(v){if(!v)return '';const s=String(v).slice(0,10);if(/^\d{4}-\d{2}-\d{2}$/.test(s))return s;const m=String(v).match(/^(\d{2})\/(\d{2})\/(\d{4})$/);return m?`${m[3]}-${m[2]}-${m[1]}`:''}
 async function api(path,options={}){const headers=Object.assign({'apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY,'Content-Type':'application/json'},options.headers||{});const r=await fetch(SUPABASE_URL+'/rest/v1/'+path,Object.assign({},options,{headers}));const text=await r.text();let body=null;try{body=text?JSON.parse(text):null}catch(_){}if(!r.ok){const msg=body?.message||body?.error_description||body?.hint||text||('HTTP '+r.status);throw new Error(msg)}return body}
 async function loadSales(){const data=await api('sales?select=id,name&order=name.asc');salesById={};salesIdByName={};(data||[]).forEach(s=>{salesById[s.id]=s.name;salesIdByName[normalize(s.name)]=s.id})}
-function resolveSalesFromKeyword(input){
- const q=normalizeSalesName(input||'').replace(/[^A-Z0-9]+/g,' ').trim();
- if(!q)return null;
- const entries=Object.entries(salesById).map(([id,name])=>({id,name,full:normalizeSalesName(name).replace(/[^A-Z0-9]+/g,' ').trim()}));
- const exact=entries.find(x=>x.full===q);
- if(exact)return exact;
- const words=q.split(/\s+/).filter(Boolean);
- const scored=entries.map(x=>{
-   const fw=x.full.split(/\s+/).filter(Boolean);
-   let score=0;
-   if(x.full.includes(q)) score+=100;
-   for(const w of words){
-     if(w.length>=3 && fw.some(v=>v===w)) score+=30;
-     else if(w.length>=3 && fw.some(v=>v.startsWith(w))) score+=20;
-     else if(w.length>=3 && x.full.includes(w)) score+=5;
-   }
-   return {...x,score};
- }).filter(x=>x.score>0).sort((a,b)=>b.score-a.score);
- if(!scored.length)return null;
- const best=scored[0];
- const tied=scored.filter(x=>x.score===best.score);
- if(tied.length>1 && !tied.some(x=>x.full.includes(q)))return null;
- return best;
-}
-async function getOrCreateSalesId(name){
- const resolved=resolveSalesFromKeyword(name);
- if(resolved)return resolved.id;
- throw new Error('Sales Name dari FAB tidak cocok dengan nama Sales yang tersedia: '+String(name||'').trim()+'. Periksa kata kunci Sales Name.');
-}
-function mapCustomer(r){return{id:r.id,cid:r.cid_pelanggan||'',name:normalize(r.nama),cluster:normalize(r.cluster),pkg:normalize(r.paket),sales:salesById[r.sales_id]?normalizeSalesName(salesById[r.sales_id]):'',sales_id:r.sales_id||null,dateISO:efanDateOnly(r.tanggal_terpasang),date:formatDate(r.tanggal_terpasang),installed:normalize(r.status)==='TERPASANG',status:r.status||''}}
-async function loadCustomers(showError=true){try{await loadSales();const data=await api('customers?select=id,cid_pelanggan,nama,cluster,paket,tanggal_terpasang,sales_id,status,created_at,updated_at&order=created_at.desc&limit=5000');customers=(data||[]).map(mapCustomer);window.customers=customers;dataSource='supabase';try{localStorage.setItem('reportTimEfanCustomers',JSON.stringify(customers))}catch(_){}await loadBillingRecords();render();if(typeof renderSaQuarter==='function')renderSaQuarter();if(typeof renderEfanV10Report==='function')renderEfanV10Report();setSyncBadge('✓ Terhubung ke Supabase')}catch(e){dataSource='local';try{customers=JSON.parse(localStorage.getItem('reportTimEfanCustomers')||'[]');customers=Array.isArray(customers)?customers.map(x=>({...x,sales:normalizeSalesName(x.sales)})):[];window.customers=customers}catch(_){customers=[]}try{billingRecords=JSON.parse(localStorage.getItem('reportTimEfanBillingRecords')||'{}')||{}}catch(_){billingRecords={}}window.billingRecords=billingRecords;render();if(typeof renderSaQuarter==='function')renderSaQuarter();if(typeof renderEfanV10Report==='function')renderEfanV10Report();setSyncBadge('⚠ Supabase tidak dapat diakses');if(showError)console.error(e)}}
+async function getOrCreateSalesId(name){const n=normalize(name);if(salesIdByName[n])return salesIdByName[n];const found=await api('sales?select=id,name&name=eq.'+encodeURIComponent(n));if(found?.length){salesById[found[0].id]=found[0].name;salesIdByName[normalize(found[0].name)]=found[0].id;return found[0].id}const created=await api('sales',{method:'POST',headers:{Prefer:'return=representation'},body:JSON.stringify({name:n})});const s=Array.isArray(created)?created[0]:created;salesById[s.id]=s.name;salesIdByName[normalize(s.name)]=s.id;return s.id}
+function mapCustomer(r){return{id:r.id,cid:r.cid_pelanggan||'',name:normalize(r.nama),cluster:normalize(r.cluster),pkg:normalize(r.paket),sales:salesById[r.sales_id]?normalizeSalesName(salesById[r.sales_id]):'',sales_id:r.sales_id||null,dateISO:efanDateOnly(r.tanggal_terpasang),date:formatDate(r.tanggal_terpasang),installed:normalize(r.status)==='TERPASANG',status:r.status||'',createdAt:r.created_at||null,submitDateISO:r.created_at?efanDateOnly(r.created_at):''}}
+async function loadCustomers(showError=true){try{await loadSales();initWebPush();const data=await api('customers?select=id,cid_pelanggan,nama,cluster,paket,tanggal_terpasang,sales_id,status,created_at,updated_at&order=created_at.desc&limit=5000');customers=(data||[]).map(mapCustomer);window.customers=customers;dataSource='supabase';try{localStorage.setItem('reportTimEfanCustomers',JSON.stringify(customers))}catch(_){}await loadBillingRecords();render();if(typeof renderSaQuarter==='function')renderSaQuarter();if(typeof renderEfanV10Report==='function')renderEfanV10Report();setSyncBadge('✓ Terhubung ke Supabase')}catch(e){dataSource='local';try{customers=JSON.parse(localStorage.getItem('reportTimEfanCustomers')||'[]');customers=Array.isArray(customers)?customers.map(x=>({...x,sales:normalizeSalesName(x.sales)})):[];window.customers=customers}catch(_){customers=[]}try{billingRecords=JSON.parse(localStorage.getItem('reportTimEfanBillingRecords')||'{}')||{}}catch(_){billingRecords={}}window.billingRecords=billingRecords;render();if(typeof renderSaQuarter==='function')renderSaQuarter();if(typeof renderEfanV10Report==='function')renderEfanV10Report();setSyncBadge('⚠ Supabase tidak dapat diakses');if(showError)console.error(e)}}
 function setSyncBadge(text){let el=document.getElementById('syncStatus');if(!el){el=document.createElement('div');el.id='syncStatus';el.style.cssText='position:fixed;right:12px;bottom:76px;z-index:30;padding:7px 10px;border-radius:999px;background:#eef2ff;color:#3949ab;font-size:11px;font-weight:700;box-shadow:0 3px 12px #0001';document.body.appendChild(el)}el.textContent=text}
 async function loadTargetRemote(){try{const d=await api('team_settings?select=target_closing&limit=1');if(d?.[0]?.target_closing!=null)document.getElementById('target').value=d[0].target_closing}catch(_){try{const t=localStorage.getItem('reportTimEfanTarget');if(t!=null)document.getElementById('target').value=t}catch(e){}}}
 async function saveTargetRemote(){const target=Math.max(0,Number(document.getElementById('target').value)||0);try{await api('team_settings',{method:'POST',headers:{Prefer:'resolution=merge-duplicates,return=minimal'},body:JSON.stringify({id:true,target_closing:target,updated_at:new Date().toISOString()})});localStorage.setItem('reportTimEfanTarget',String(target))}catch(e){console.error(e)}render()}
 function updateTarget(){saveTargetRemote()}
+
+function pushBase64ToUint8Array(base64String){const padding='='.repeat((4-base64String.length%4)%4);const base64=(base64String+padding).replace(/-/g,'+').replace(/_/g,'/');const raw=atob(base64);return Uint8Array.from([...raw].map(c=>c.charCodeAt(0)))}
+async function pushRegisterSalesOptions(){
+  const sel=document.getElementById('pushSalesSelect');if(!sel)return;
+  const current=localStorage.getItem('reportTimEfanPushSalesId')||'';
+  const seen=new Set(), rows=[];
+  Object.entries(salesById).forEach(([id,name])=>{
+    const clean=String(name||'').replace(/\\s+/g,' ').trim().toLocaleUpperCase('id-ID');
+    if(!clean || seen.has(clean)) return;
+    seen.add(clean); rows.push([id,clean]);
+  });
+  rows.sort((a,b)=>a[1].localeCompare(b[1],'id'));
+  sel.innerHTML='<option value="">Pilih Nama Sales</option>'+
+    rows.map(([id,name])=>`<option value="${escapeHtml(id)}">${escapeHtml(name)}</option>`).join('');
+  if(current && rows.some(x=>x[0]===current)) sel.value=current;
+}
+async function pushGetRegistration(){if(!('serviceWorker' in navigator)||!('PushManager' in window)||!('Notification' in window))return null;try{return await navigator.serviceWorker.register('/sw.js',{scope:'/'});}catch(e){console.error('SW register error',e);return null}}
+async function pushRefreshStatus(){const status=document.getElementById('pushStatus'),on=document.getElementById('enablePushBtn'),off=document.getElementById('disablePushBtn');if(!status)return;const reg=await pushGetRegistration();if(!reg){status.textContent='Browser/perangkat ini belum mendukung push notification.';return}const sub=await reg.pushManager.getSubscription();if(sub){status.textContent='✓ Notifikasi aktif di perangkat ini.';if(on)on.style.display='none';if(off)off.style.display='block'}else{status.textContent=Notification.permission==='denied'?'Notifikasi diblokir browser. Izinkan notifikasi dari pengaturan situs.':'Notifikasi belum diaktifkan.';if(on)on.style.display='block';if(off)off.style.display='none'}}
+async function enablePushNotifications(){const btn=document.getElementById('enablePushBtn'),salesSel=document.getElementById('pushSalesSelect');const salesId=salesSel?.value||'';if(!salesId){alert('Pilih Nama Sales terlebih dahulu.');return}if(!window.isSecureContext){alert('Notifikasi push membutuhkan HTTPS.');return}if(!('Notification' in window)||!('serviceWorker' in navigator)||!('PushManager' in window)){alert('Browser ini belum mendukung Web Push. Gunakan Chrome/Edge versi terbaru.');return}try{if(btn){btn.disabled=true;btn.textContent='MENGAKTIFKAN...'}const permission=await Notification.requestPermission();if(permission!=='granted')throw new Error('Izin notifikasi tidak diberikan.');const reg=await pushGetRegistration();if(!reg)throw new Error('Service worker tidak dapat dipasang.');let sub=await reg.pushManager.getSubscription();if(!sub)sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:pushBase64ToUint8Array(VAPID_PUBLIC_KEY)});const payload={action:'subscribe',sales_id:salesId,subscription:sub.toJSON()};const r=await fetch(PUSH_FUNCTION_URL,{method:'POST',headers:{'Content-Type':'application/json','apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY},body:JSON.stringify(payload)});const data=await r.json().catch(()=>({}));if(!r.ok||!data.ok)throw new Error(data.error||('HTTP '+r.status));localStorage.setItem('reportTimEfanPushSalesId',salesId);await pushRefreshStatus();alert('✓ Notifikasi berhasil diaktifkan untuk sales tersebut.');}catch(e){alert('Gagal mengaktifkan notifikasi: '+(e.message||e))}finally{if(btn){btn.disabled=false;btn.textContent='AKTIFKAN NOTIFIKASI'}}}
+async function enablePushAllNotifications(){const allBtn=document.getElementById('selectAllPushBtn'),oneBtn=document.getElementById('enablePushBtn');if(!window.isSecureContext){alert('Notifikasi push membutuhkan HTTPS.');return}if(!('Notification' in window)||!('serviceWorker' in navigator)||!('PushManager' in window)){alert('Browser ini belum mendukung Web Push. Gunakan Chrome/Edge versi terbaru.');return}const rows=[];const seen=new Set();Object.entries(salesById).forEach(([id,name])=>{const clean=String(name||'').replace(/\s+/g,' ').trim().toLocaleUpperCase('id-ID');if(!id||!clean||seen.has(clean))return;seen.add(clean);rows.push([id,clean]);});if(!rows.length){alert('Daftar sales belum tersedia.');return}try{if(allBtn){allBtn.disabled=true;allBtn.textContent='MEMPROSES...'}const permission=await Notification.requestPermission();if(permission!=='granted')throw new Error('Izin notifikasi tidak diberikan.');const reg=await pushGetRegistration();if(!reg)throw new Error('Service worker tidak dapat dipasang.');let sub=await reg.pushManager.getSubscription();if(!sub)sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:pushBase64ToUint8Array(VAPID_PUBLIC_KEY)});let success=0;for(const [salesId] of rows){const payload={action:'subscribe',sales_id:salesId,subscription:sub.toJSON()};const r=await fetch(PUSH_FUNCTION_URL,{method:'POST',headers:{'Content-Type':'application/json','apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY},body:JSON.stringify(payload)});const data=await r.json().catch(()=>({}));if(r.ok&&data.ok)success++;}localStorage.setItem('reportTimEfanPushSalesId','ALL');await pushRefreshStatus();alert(`✓ Notifikasi berhasil diaktifkan untuk ${success} dari ${rows.length} sales.`);}catch(e){alert('Gagal mengaktifkan semua notifikasi: '+(e.message||e))}finally{if(allBtn){allBtn.disabled=false;allBtn.textContent='PILIH SEMUA'}}}
+async function disablePushNotifications(){try{const reg=await pushGetRegistration();const sub=await reg?.pushManager.getSubscription();if(sub){await fetch(PUSH_FUNCTION_URL,{method:'POST',headers:{'Content-Type':'application/json','apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY},body:JSON.stringify({action:'unsubscribe',endpoint:sub.endpoint})});await sub.unsubscribe()}await pushRefreshStatus();}catch(e){alert('Gagal mematikan notifikasi: '+(e.message||e))}}
+function initWebPush(){pushRegisterSalesOptions();pushRefreshStatus();}
 function parseFabSabrina(text){
  const raw=String(text||'').replace(/\r/g,'');
  const get=(label)=>{const re=new RegExp('^\\s*'+label.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'\\s*:\\s*(.*?)\\s*$','im');const m=raw.match(re);return m?m[1].trim():''};
- const salesRaw=get('Sales Name');
- const salesMatch=resolveSalesFromKeyword(salesRaw);
- const sales=salesMatch?normalizeSalesName(salesMatch.name):normalizeSalesName(salesRaw);
+ const sales=normalizeSalesName(get('Sales Name'));
  const cid=get('Customer ID').replace(/\s+/g,'').trim();
  const cluster=normalize(get('Cluster'));
  const product=normalize(get('Produk'));
@@ -681,10 +689,10 @@ function parseFabSabrina(text){
 function detectPackageFromProduct(product){
  const p=normalize(product).replace(/\s+/g,' ');
  const maps=[
-  ['MG PLATINUM1G',['MG PLATINUM1G','PLATINUM 1G','PLATINUM1G']],
-  ['MG DIAMOND750',['MG DIAMOND750','DIAMOND 750','DIAMOND750']],
-  ['MG GOLD600',['MG GOLD600','GOLD 600','GOLD600']],
-  ['MG SILVER250',['MG SILVER250','SILVER 250','SILVER250']],
+  ['MYGAMER P1',['MYGAMER P1','PLATINUM 1G','PLATINUM1G']],
+  ['MYGAMER D750',['MYGAMER D750','DIAMOND 750','DIAMOND750']],
+  ['MYGAMER G500',['MYGAMER G500','GOLD 600','GOLD600']],
+  ['MYGAMER S250',['MYGAMER S250','SILVER 250','SILVER250']],
   ['ULTRA1GB',['ULTRA1GB','ULTRA 1GB','ULTRA1 GB','ULTRA 1 G']],
   ['WONDER750',['WONDER750','WONDER 750']],
   ['PRIME500',['PRIME500','PRIME 500']],
@@ -692,7 +700,7 @@ function detectPackageFromProduct(product){
   ['VELO150',['VELO150','VELO 150']],
   ['NEO100',['NEO100','NEO 100']],
   ['SAHABAT75',['SAHABAT75','SAHABAT 75']],
-  ['EKONOMIS',['EKONOMIS','ECONOMIS','ECONOMIC']],
+  ['EKONOMIS',['EKONOMIS','ECONOMIC']],
   ['PAS',['PAS']],
   ['RINGAN',['RINGAN']]
  ];
@@ -721,31 +729,34 @@ async function addCustomer(){
   const salesId=await getOrCreateSalesId(parsed.sales);
   /* Submit SA selalu masuk sebagai BELUM TERPASANG. Tanggal baru diisi saat tombol Terpasang diklik. */
   const payload={cid_pelanggan:parsed.cid,nama:name,cluster:parsed.cluster,paket:parsed.pkg,tanggal_terpasang:null,sales_id:salesId,status:'Belum Terpasang'};
-  await api('customers',{method:'POST',headers:{Prefer:'return=minimal'},body:JSON.stringify(payload)});
+  const inserted=await api('customers',{method:'POST',headers:{Prefer:'return=representation'},body:JSON.stringify(payload)});
+  const insertedRow=Array.isArray(inserted)?inserted[0]:inserted;
+  if(insertedRow){customers=[mapCustomer(insertedRow),...customers];window.customers=customers;try{localStorage.setItem('reportTimEfanCustomers',JSON.stringify(customers))}catch(_){}render();if(typeof renderSaQuarter==='function')renderSaQuarter();if(typeof renderEfanV10Report==='function')renderEfanV10Report()}
   ['name','fabText'].forEach(id=>{const e=document.getElementById(id);if(e)e.value=''});
   showParsedFabPreview(null);
   const msg=document.getElementById('formMessage');if(msg){msg.textContent='✓ SA berhasil disimpan sebagai BELUM TERPASANG';msg.style.display='block';setTimeout(()=>msg.style.display='none',3000)}
   await loadCustomers(true);
- }catch(e){alert('Gagal menyimpan SA: '+(e.message||e))}
+ }catch(e){const msg=String(e?.message||e);if(/duplicate key|unique constraint|customers_cid_pelanggan_key/i.test(msg))alert('Customer ID tersebut sudah ada di report. Gunakan Customer ID yang berbeda.');else alert('Gagal menyimpan SA: '+msg)}
  finally{if(btn){btn.disabled=false;btn.textContent='3. SUBMIT SA'}}
 }
 function currentYM(){return efanCurrentYM()}
 function monthLabelV16(ym){if(!/^\d{4}-\d{2}$/.test(String(ym||'')))return '';const [y,m]=ym.split('-').map(Number);return new Date(y,m-1,1).toLocaleDateString('id-ID',{month:'long',year:'numeric'})}
 function monthOptionsV16(){
- const keys=[...new Set(customers.map(x=>String(x.dateISO||'').slice(0,7)).filter(v=>/^\d{4}-\d{2}$/.test(v)))].sort().reverse();
+ const keys=[...new Set(customers.flatMap(x=>[x.dateISO,x.submitDateISO]).map(v=>String(v||'').slice(0,7)).filter(v=>/^\d{4}-\d{2}$/.test(v)))].sort().reverse();
  const now=currentYM(); if(!keys.includes(now))keys.unshift(now);
  const cf=document.getElementById('customerMonthFilter'),rf=document.getElementById('rankingMonthFilter');
  const oldC=cf?.value||now,oldR=rf?.value||now;
  if(cf){cf.innerHTML='<option value="">Semua Bulan</option>'+keys.map(k=>`<option value="${k}">${monthLabelV16(k)}</option>`).join('');cf.value=keys.includes(oldC)?oldC:now}
  if(rf){rf.innerHTML=keys.map(k=>`<option value="${k}">${monthLabelV16(k)}</option>`).join('');rf.value=keys.includes(oldR)?oldR:now}
 }
+function customerMonthISO(x){return String(x?.dateISO||x?.submitDateISO||'').slice(0,7)}
 function render(){
  monthOptionsV16();
  const q=val('search').toLowerCase(),sf=val('salesFilter').toLowerCase();
  const cm=document.getElementById('customerMonthFilter')?.value||'';
  const rm=document.getElementById('rankingMonthFilter')?.value||currentYM();
  const data=customers.filter(x=>{
-   const basic=(!cm||String(x.dateISO||'').slice(0,7)===cm)&&(!q||[x.cid,x.name,x.cluster,x.pkg].join(' ').toLowerCase().includes(q))&&(!sf||String(x.sales||'').toLowerCase().includes(sf));
+   const basic=(!cm||customerMonthISO(x)===cm)&&(!q||[x.cid,x.name,x.cluster,x.pkg].join(' ').toLowerCase().includes(q))&&(!sf||String(x.sales||'').toLowerCase().includes(sf));
    if(!basic)return false;
    if(window.billingFilter && window.billingFilter!=='all'){
      const bi=billingInfoFor(x);
@@ -785,18 +796,7 @@ initSupabaseApp();
 <a href="#pelanggan" onclick="document.getElementById('search').focus()"><span>👥</span>Pelanggan</a>
 <a href="#ranking" onclick="document.getElementById('rankingPanel').scrollIntoView({behavior:'smooth'})"><span>🏆</span>Ranking</a>
 <a href="#profil"><span>👤</span>Profil</a>
-</nav><style id="saPopupStyle">.sa-pop-bg{display:none;position:fixed;inset:0;background:#0008;z-index:9999;align-items:center;justify-content:center;padding:12px}.sa-pop-bg.show{display:flex}.sa-pop{background:#fff;width:min(520px,100%);max-height:82vh;border-radius:16px;display:flex;flex-direction:column;overflow:hidden}.sa-pop-head{padding:14px 16px;display:flex;gap:10px;border-bottom:1px solid #eee}.sa-pop-head strong{flex:1}.sa-pop-search{margin:12px;padding:11px;border:1px solid #ccd3dd;border-radius:10px}.sa-pop-list{overflow-y:auto;max-height:60vh;padding:0 8px 10px}.sa-pop-item{width:100%;text-align:left;border:0;background:#fff;padding:12px;border-radius:9px;font-weight:600}.sa-pop-item:hover{background:#f1f5f9}@media(max-width:600px){.sa-pop-bg{align-items:flex-end;padding:0}.sa-pop{width:100%;max-height:85vh;border-radius:16px 16px 0 0}}</style><script>const SA_SALES=DEFAULT_SA_SALES.slice();const SA_PACKAGES=["RINGAN", "PAS", "EKONOMIS", "SAHABAT75", "NEO100", "VELO150", "NEXUS300", "PRIME500", "WONDER750", "ULTRA1GB", "MG SILVER250", "MG GOLD600", "MG DIAMOND750", "MG PLATINUM1G"] ;let saTarget=null,saVals=[];function openSaPicker(id,title,vals){saTarget=id;saVals=vals;document.getElementById('saPopTitle').textContent=title;document.getElementById('saPopSearch').value='';document.getElementById('saPop').classList.add('show');renderSaPicker();setTimeout(()=>document.getElementById('saPopSearch').focus(),50)}function renderSaPicker(){const q=document.getElementById('saPopSearch').value.toUpperCase();const a=saVals.filter(x=>x.includes(q));const list=document.getElementById('saPopList');list.innerHTML='';a.forEach(v=>{const b=document.createElement('button');b.type='button';b.className='sa-pop-item';b.textContent=v;b.onclick=()=>chooseSaPicker(v);list.appendChild(b)});if(!a.length)list.innerHTML='<div style="padding:20px;text-align:center">Tidak ditemukan</div>'}function chooseSaPicker(v){const e=document.getElementById(saTarget);if(e){e.value=v;e.dispatchEvent(new Event('input',{bubbles:true}));e.dispatchEvent(new Event('change',{bubbles:true}))}closeSaPicker()}function closeSaPicker(){document.getElementById('saPop').classList.remove('show')}document.addEventListener('keydown',e=>{if(e.key==='Escape')closeSaPicker()})</script><div id="saPop" class="sa-pop-bg" onclick="if(event.target===this)closeSaPicker()"><div class="sa-pop"><div class="sa-pop-head"><strong id="saPopTitle">Pilih</strong><button type="button" onclick="closeSaPicker()">Tutup</button></div><input id="saPopSearch" class="sa-pop-search" type="search" placeholder="Ketik kata kunci..."><div id="saPopList" class="sa-pop-list"></div></div></div><script id="v27-package-canonical-fix">
-window.normalizeReportPackage = function(value){
-  const s=String(value||"").toUpperCase().trim().replace(/\s+/g," ");
-  if(s.includes("ECONOMIS")) return "EKONOMIS";
-  if(s.includes("MG SILVER")) return "MG SILVER250";
-  if(s.includes("MG GOLD")) return "MG GOLD600";
-  if(s.includes("MG DIAMOND")) return "MG DIAMOND750";
-  if(s.includes("MG PLATINUM")) return "MG PLATINUM1G";
-  return s;
-};
-</script>
-<section id="saReports" class="panel" style="margin-top:18px"><h2>Perbandingan SA & Rekap Kuartal</h2><div class="muted" style="margin-bottom:12px">Perbandingan dibuat otomatis per kuartal. Tidak perlu memilih bulan.</div><div id="saQuarterCards"></div></section><script>
+</nav><style id="saPopupStyle">.sa-pop-bg{display:none;position:fixed;inset:0;background:#0008;z-index:9999;align-items:center;justify-content:center;padding:12px}.sa-pop-bg.show{display:flex}.sa-pop{background:#fff;width:min(520px,100%);max-height:82vh;border-radius:16px;display:flex;flex-direction:column;overflow:hidden}.sa-pop-head{padding:14px 16px;display:flex;gap:10px;border-bottom:1px solid #eee}.sa-pop-head strong{flex:1}.sa-pop-search{margin:12px;padding:11px;border:1px solid #ccd3dd;border-radius:10px}.sa-pop-list{overflow-y:auto;max-height:60vh;padding:0 8px 10px}.sa-pop-item{width:100%;text-align:left;border:0;background:#fff;padding:12px;border-radius:9px;font-weight:600}.sa-pop-item:hover{background:#f1f5f9}@media(max-width:600px){.sa-pop-bg{align-items:flex-end;padding:0}.sa-pop{width:100%;max-height:85vh;border-radius:16px 16px 0 0}}</style><script>const SA_SALES=DEFAULT_SA_SALES.slice();const SA_PACKAGES=["RINGAN", "PAS", "EKONOMIS", "SAHABAT75", "NEO100", "VELO150", "NEXUS300", "PRIME500", "WONDER750", "ULTRA1GB", "MYGAMER S250", "MYGAMER G500", "MYGAMER D750", "MYGAMER P1"] ;let saTarget=null,saVals=[];function openSaPicker(id,title,vals){saTarget=id;saVals=vals;document.getElementById('saPopTitle').textContent=title;document.getElementById('saPopSearch').value='';document.getElementById('saPop').classList.add('show');renderSaPicker();setTimeout(()=>document.getElementById('saPopSearch').focus(),50)}function renderSaPicker(){const q=document.getElementById('saPopSearch').value.toUpperCase();const a=saVals.filter(x=>x.includes(q));const list=document.getElementById('saPopList');list.innerHTML='';a.forEach(v=>{const b=document.createElement('button');b.type='button';b.className='sa-pop-item';b.textContent=v;b.onclick=()=>chooseSaPicker(v);list.appendChild(b)});if(!a.length)list.innerHTML='<div style="padding:20px;text-align:center">Tidak ditemukan</div>'}function chooseSaPicker(v){const e=document.getElementById(saTarget);if(e){e.value=v;e.dispatchEvent(new Event('input',{bubbles:true}));e.dispatchEvent(new Event('change',{bubbles:true}))}closeSaPicker()}function closeSaPicker(){document.getElementById('saPop').classList.remove('show')}document.addEventListener('keydown',e=>{if(e.key==='Escape')closeSaPicker()})</script><div id="saPop" class="sa-pop-bg" onclick="if(event.target===this)closeSaPicker()"><div class="sa-pop"><div class="sa-pop-head"><strong id="saPopTitle">Pilih</strong><button type="button" onclick="closeSaPicker()">Tutup</button></div><input id="saPopSearch" class="sa-pop-search" type="search" placeholder="Ketik kata kunci..."><div id="saPopList" class="sa-pop-list"></div></div></div><section id="saReports" class="panel" style="margin-top:18px"><h2>Perbandingan SA & Rekap Kuartal</h2><div class="muted" style="margin-bottom:12px">Perbandingan dibuat otomatis per kuartal. Tidak perlu memilih bulan.</div><div id="saQuarterCards"></div></section><script>
 function ym(v){return String(v||'').slice(0,7)}
 function monthLabel(ymk){if(!ymk)return '';const [y,m]=ymk.split('-').map(Number);return new Date(y,m-1,1).toLocaleDateString('id-ID',{month:'long'})}
 function monthNum(ymk){return Number(String(ymk).slice(5,7))}
@@ -906,8 +906,8 @@ renderSaQuarter();
 (function(){
   const PACKAGES=[
     "RINGAN","PAS","EKONOMIS","SAHABAT75","NEO100","VELO150","NEXUS300",
-    "PRIME500","WONDER750","ULTRA1GB","MG SILVER250","MG GOLD600",
-    "MG DIAMOND750","MG PLATINUM1G"
+    "PRIME500","WONDER750","ULTRA1GB","MYGAMER S250","MYGAMER G500",
+    "MYGAMER D750","MYGAMER P1"
   ];
   function monthNow(){return efanCurrentYM()}
   function monthLabel(m){
@@ -924,17 +924,13 @@ renderSaQuarter();
     const sales={},packs={};
     data.forEach(x=>{
       const s=normalizeSalesName(x.sales||"TANPA SALES");
-      let p=String(x.pkg||"TANPA PAKET").toLocaleUpperCase("id-ID").trim();
-      if(p.includes("ECONOMIS")) p="EKONOMIS";
-      if(p.includes("MG SILVER")) p="MG SILVER250";
-      else if(p.includes("MG GOLD")) p="MG GOLD600";
-      else if(p.includes("MG DIAMOND")) p="MG DIAMOND750";
-      else if(p.includes("MG PLATINUM")) p="MG PLATINUM1G";
+      const p=String(x.pkg||"TANPA PAKET").toLocaleUpperCase("id-ID").trim();
       sales[s]=(sales[s]||0)+1;
       packs[p]=(packs[p]||0)+1;
     });
     const salesArr=Object.entries(sales).sort((a,b)=>b[1]-a[1]||a[0].localeCompare(b[0]));
-    const packArr=PACKAGES.map(p=>[p,packs[p]||0]);
+    const packArr=PACKAGES.map(p=>[p,packs[p]||0]).filter(x=>x[1]>0)
+      .sort((a,b)=>b[1]-a[1]||a[0].localeCompare(b[0]));
 
     const monthEl=document.getElementById("efanV9SalesMonth");
     const totalEl=document.getElementById("efanV9Total");
@@ -1003,6 +999,7 @@ renderSaQuarter();
 })();
 </script>
 
+<script id="efan-web-push-boot">document.addEventListener('DOMContentLoaded',()=>setTimeout(()=>{try{initWebPush()}catch(e){console.error(e)}},700));</script>
 <script id="efan-v13-diagnostic">
 window.addEventListener("error", function(e){
   console.error("Report Tim Efan error:", e.error || e.message);
@@ -1013,21 +1010,59 @@ window.addEventListener("unhandledrejection", function(e){
 </script>
 
 <script>
-/* v27.3: Rekap Paket hanya menampilkan paket yang memiliki SA */
+/* v27.5 FINAL: package keywords, FAB Request Date, and lightweight helpers */
 (function(){
-  window.filterPackageRecapWithSA = function(container){
-    if (!container) return;
-    const rows = container.querySelectorAll('[data-package-row], .package-row, tr');
-    rows.forEach(function(row){
-      const text = (row.innerText || '').trim();
-      if (!text) return;
-      // Keep header rows.
-      if (/paket|package|nama paket/i.test(text) && !/\bSA\b/i.test(text)) return;
-      const m = text.match(/(\d+)\s*SA\b/i);
-      if (m && Number(m[1]) === 0) {
-        row.style.display = 'none';
-      }
-    });
+  const PACKAGES = [
+    "RINGAN","PAS","EKONOMIS","SAHABAT75","NEO100","VELO150",
+    "NEXUS300","PRIME500","WONDER750","ULTRA1GB",
+    "MYGAMER S250","MYGAMER G500","MYGAMER D750","MYGAMER P1"
+  ];
+
+  window.REPORT_SA_PACKAGES = PACKAGES;
+
+  window.normalizeReportPackage = function(value){
+    const s=String(value||"").toUpperCase().trim().replace(/\s+/g," ");
+    if(!s) return "";
+    if(/\bS250\b/.test(s)) return "MYGAMER S250";
+    if(/\bG500\b/.test(s)) return "MYGAMER G500";
+    if(/\bD750\b/.test(s)) return "MYGAMER D750";
+    if(/\bP1\b/.test(s)) return "MYGAMER P1";
+    if(s.includes("MG DIAMOND")) return "MYGAMER D750";
+    if(s.includes("MG PLATINUM")) return "MYGAMER P1";
+    if(s.includes("ECONOMIS")) return "EKONOMIS";
+    for(const p of PACKAGES) if(s===p || s.includes(p)) return p;
+    return s;
+  };
+
+  window.MYGAMER_PACKAGE_KEYWORDS={
+    "MYGAMER S250":["S250","MYGAMER S250"],
+    "MYGAMER G500":["G500","MYGAMER G500"],
+    "MYGAMER D750":["D750","MYGAMER D750","MG DIAMOND"],
+    "MYGAMER P1":["P1","MYGAMER P1","MG PLATINUM"]
+  };
+
+  window.parseFabRequestDateOnly=function(text){
+    const s=String(text||"");
+    const m=s.match(/Request\s*Date\s*:\s*[^,\r\n]*,\s*(\d{1,2})\s+([A-Za-zÀ-ÿ]+)\s+(\d{2,4})/i);
+    if(!m) return null;
+    const months={
+      JAN:0,FEB:1,MAR:2,APR:3,MEI:4,MAY:4,JUN:5,JUL:6,
+      AGU:7,AUG:7,SEP:8,OKT:9,OCT:9,NOV:10,DES:11,DEC:11
+    };
+    const key=m[2].slice(0,3).toUpperCase();
+    if(!(key in months)) return null;
+    let year=Number(m[3]); if(year<100) year+=2000;
+    return year+"-"+String(months[key]+1).padStart(2,"0")+"-"+String(Number(m[1])).padStart(2,"0");
+  };
+
+  /* Small debounce helper for search/render handlers. */
+  window.reportSaDebounce=function(fn,delay){
+    let timer;
+    return function(){
+      const ctx=this,args=arguments;
+      clearTimeout(timer);
+      timer=setTimeout(function(){fn.apply(ctx,args);},delay||120);
+    };
   };
 })();
 </script>
