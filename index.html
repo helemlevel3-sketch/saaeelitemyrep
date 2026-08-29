@@ -637,54 +637,62 @@ const SALES_NAME_ALIASES={
   "NUGROHO DARU SAPUTRA":"NUGROHO DARU SAPUTRO, S.E"
 };
 function normalizeSalesName(v){
-  const n=normalize(v);
-  if(!n)return '';
+ const n=normalize(v);
+ if(!n)return '';
 
-  // Exact aliases first.
-  if(SALES_NAME_ALIASES[n]) return SALES_NAME_ALIASES[n];
+ // Existing explicit aliases.
+ if(SALES_NAME_ALIASES[n]) return SALES_NAME_ALIASES[n];
 
-  // Exact full name.
-  const exact = Object.keys(salesIdByName||{}).find(k=>k===n);
-  if(exact) return salesById[salesIdByName[exact]] || exact;
+ // Exact master-name match.
+ if(typeof salesIdByName!=='undefined' && salesIdByName[n]){
+   return salesById[salesIdByName[n]]||n;
+ }
 
-  // Keyword matching against the existing master Sales list.
-  // Example: "RIZKY" -> "RIZKY FATHURRAHMAN SYAHDIRA".
-  const compact = n.replace(/[^A-Z0-9]/g,'');
-  const candidates = Object.keys(salesIdByName||{}).filter(full=>{
-    const f=normalize(full);
-    const fc=f.replace(/[^A-Z0-9]/g,'');
-    return f.includes(n) || fc.includes(compact) ||
-           f.split(/\s+/).some(word=>word===n);
-  });
+ // Keyword match against the current master Sales list.
+ // Example: "RIZKY" -> "RIZKY FATHURRAHMAN SYAHDIRA".
+ const entries=(typeof salesIdByName!=='undefined') ? Object.keys(salesIdByName) : [];
+ const compact=n.replace(/[^A-Z0-9]/g,'');
+ let candidates=entries.filter(full=>{
+   const f=normalize(full);
+   const fc=f.replace(/[^A-Z0-9]/g,'');
+   return f===n || f.startsWith(n+' ') || f.includes(' '+n+' ') ||
+          fc===compact || fc.startsWith(compact);
+ });
 
-  // Prefer the unique best match. Do not create a new Sales for a short/unknown keyword.
-  if(candidates.length===1){
-    return salesById[salesIdByName[candidates[0]]] || candidates[0];
-  }
+ if(candidates.length===1){
+   const id=salesIdByName[candidates[0]];
+   return (typeof salesById!=='undefined' && salesById[id]) ? salesById[id] : candidates[0];
+ }
 
-  // If several names match, prefer a candidate whose first name starts with the keyword.
-  const firstNameMatches=candidates.filter(full=>{
-    const first=normalize(full).split(/\s+/)[0]||'';
-    return first===n || first.startsWith(n);
-  });
-  if(firstNameMatches.length===1){
-    return salesById[salesIdByName[firstNameMatches[0]]] || firstNameMatches[0];
-  }
+ // Prefer a unique first-name/leading-token match.
+ const firstMatches=candidates.filter(full=>{
+   const first=normalize(full).split(/\s+/)[0]||'';
+   return first===n || first.startsWith(n);
+ });
+ if(firstMatches.length===1){
+   const id=salesIdByName[firstMatches[0]];
+   return (typeof salesById!=='undefined' && salesById[id]) ? salesById[id] : firstMatches[0];
+ }
 
-  return '';
-}
-function val(id){const e=document.getElementById(id);return e?e.value.trim():''}
-function normalize(v){return String(v||'').trim().toLocaleUpperCase('id-ID')}
+ // Also support the common case where the user types a unique token
+ // contained anywhere in the full name.
+ const tokenMatches=enasync function getOrCreateSalesId(name){
+ const matched=normalizeSalesName(name)||normalize(name);
+ const n=normalize(matched);
+ if(!n)throw new Error('Sales Name tidak ditemukan.');
+ if(salesIdByName[n])return salesIdByName[n];
+ const found=await api('sales?select=id,name&name=eq.'+encodeURIComponent(n));
+ if(found?.length){salesById[found[0].id]=found[0].name;salesIdByName[normalize(found[0].name)]=found[0].id;return found[0].id}
+ if(n.split(/\s+/).length<2)throw new Error('Sales Name "'+n+'" tidak cocok dengan master Sales.');
+ const created=await api('sales',{method:'POST',headers:{Prefer:'return=representation'},body:JSON.stringify({name:n})});
+ const s=Array.isArray(created)?created[0]:created;salesById[s.id]=s.name;salesIdByName[normalize(s.name)]=s.id;return s.id}
+function canonicalPackageNameCase('id-ID')}
 function escapeHtml(v){return String(v??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]))}
 function formatDate(d){if(!d)return '';const s=String(d).slice(0,10),m=s.match(/^(\d{4})-(\d{2})-(\d{2})$/);return m?`${m[3]}/${m[2]}/${m[1]}`:String(d)}
 function parseDateForInput(v){if(!v)return '';const s=String(v).slice(0,10);if(/^\d{4}-\d{2}-\d{2}$/.test(s))return s;const m=String(v).match(/^(\d{2})\/(\d{2})\/(\d{4})$/);return m?`${m[3]}-${m[2]}-${m[1]}`:''}
 async function api(path,options={}){const headers=Object.assign({'apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY,'Content-Type':'application/json'},options.headers||{});const r=await fetch(SUPABASE_URL+'/rest/v1/'+path,Object.assign({},options,{headers}));const text=await r.text();let body=null;try{body=text?JSON.parse(text):null}catch(_){}if(!r.ok){const msg=body?.message||body?.error_description||body?.hint||text||('HTTP '+r.status);throw new Error(msg)}return body}
 async function loadSales(){const data=await api('sales?select=id,name&order=name.asc');salesById={};salesIdByName={};(data||[]).forEach(s=>{salesById[s.id]=s.name;salesIdByName[normalize(s.name)]=s.id})}
-async function getOrCreateSalesId(name){
- const matched=normalizeSalesName(name);
- if(!matched) throw new Error('Sales Name FAB tidak cocok dengan master Sales. Periksa kata kunci nama Sales.');
- const n=normalize(matched);
- if(salesIdByName[n])return salesIdByName[n];const found=await api('sales?select=id,name&name=eq.'+encodeURIComponent(n));if(found?.length){salesById[found[0].id]=found[0].name;salesIdByName[normalize(found[0].name)]=found[0].id;return found[0].id}const created=await api('sales',{method:'POST',headers:{Prefer:'return=representation'},body:JSON.stringify({name:n})});const s=Array.isArray(created)?created[0]:created;salesById[s.id]=s.name;salesIdByName[normalize(s.name)]=s.id;return s.id}
+async function getOrCreateSalesId(name){const n=normalize(name);if(salesIdByName[n])return salesIdByName[n];const found=await api('sales?select=id,name&name=eq.'+encodeURIComponent(n));if(found?.length){salesById[found[0].id]=found[0].name;salesIdByName[normalize(found[0].name)]=found[0].id;return found[0].id}const created=await api('sales',{method:'POST',headers:{Prefer:'return=representation'},body:JSON.stringify({name:n})});const s=Array.isArray(created)?created[0]:created;salesById[s.id]=s.name;salesIdByName[normalize(s.name)]=s.id;return s.id}
 function canonicalPackageName(v){
  const s=String(v||"").toLocaleUpperCase("id-ID").trim().replace(/\s+/g," " );
  if(/\bS250\b/.test(s)||s.includes("MG SILVER")||s.includes("SILVER 250")||s.includes("SILVER250")) return "MYGAMER S250";
@@ -763,7 +771,7 @@ function validateFab(){
  if(!name){alert('Ketik Nama Pelanggan terlebih dahulu.');return null}
  if(!parsed.cid){alert('Customer ID tidak ditemukan pada copy text FAB Sabrina.');return null}
  if(!parsed.cluster){alert('Cluster tidak ditemukan pada copy text FAB Sabrina.');return null}
- if(!parsed.sales){alert('Sales Name FAB tidak cocok dengan master Sales. Gunakan kata kunci nama Sales yang tersedia.');return null}
+ if(!parsed.sales){alert('Sales Name tidak ditemukan pada copy text FAB Sabrina.');return null}
  if(!parsed.pkg){alert('Paket dari baris Produk tidak dikenali. Periksa nama paket pada copy text FAB Sabrina.');return null}
  return {name,parsed};
 }
