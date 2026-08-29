@@ -648,7 +648,16 @@ function parseDateForInput(v){if(!v)return '';const s=String(v).slice(0,10);if(/
 async function api(path,options={}){const headers=Object.assign({'apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY,'Content-Type':'application/json'},options.headers||{});const r=await fetch(SUPABASE_URL+'/rest/v1/'+path,Object.assign({},options,{headers}));const text=await r.text();let body=null;try{body=text?JSON.parse(text):null}catch(_){}if(!r.ok){const msg=body?.message||body?.error_description||body?.hint||text||('HTTP '+r.status);throw new Error(msg)}return body}
 async function loadSales(){const data=await api('sales?select=id,name&order=name.asc');salesById={};salesIdByName={};(data||[]).forEach(s=>{salesById[s.id]=s.name;salesIdByName[normalize(s.name)]=s.id})}
 async function getOrCreateSalesId(name){const n=normalize(name);if(salesIdByName[n])return salesIdByName[n];const found=await api('sales?select=id,name&name=eq.'+encodeURIComponent(n));if(found?.length){salesById[found[0].id]=found[0].name;salesIdByName[normalize(found[0].name)]=found[0].id;return found[0].id}const created=await api('sales',{method:'POST',headers:{Prefer:'return=representation'},body:JSON.stringify({name:n})});const s=Array.isArray(created)?created[0]:created;salesById[s.id]=s.name;salesIdByName[normalize(s.name)]=s.id;return s.id}
-function mapCustomer(r){return{id:r.id,cid:r.cid_pelanggan||'',name:normalize(r.nama),cluster:normalize(r.cluster),pkg:normalize(r.paket),sales:salesById[r.sales_id]?normalizeSalesName(salesById[r.sales_id]):'',sales_id:r.sales_id||null,dateISO:efanDateOnly(r.tanggal_terpasang),date:formatDate(r.tanggal_terpasang),installed:normalize(r.status)==='TERPASANG',status:r.status||'',createdAt:r.created_at||null,submitDateISO:r.created_at?efanDateOnly(r.created_at):''}}
+function canonicalPackageName(v){
+ const s=String(v||"").toLocaleUpperCase("id-ID").trim().replace(/\s+/g," " );
+ if(/\bS250\b/.test(s)||s.includes("MG SILVER")||s.includes("SILVER 250")||s.includes("SILVER250")) return "MYGAMER S250";
+ if(/\bG500\b/.test(s)||s.includes("MG GOLD")||s.includes("GOLD 500")||s.includes("GOLD 600")||s.includes("GOLD600")) return "MYGAMER G500";
+ if(/\bD750\b/.test(s)||s.includes("MG DIAMOND")||s.includes("DIAMOND 750")||s.includes("DIAMOND750")) return "MYGAMER D750";
+ if(/\bP1\b/.test(s)||s.includes("MG PLATINUM")||s.includes("PLATINUM 1G")||s.includes("PLATINUM1G")) return "MYGAMER P1";
+ if(s.includes("ECONOMIS")) return "EKONOMIS";
+ return s;
+}
+function mapCustomer(r){return{id:r.id,cid:r.cid_pelanggan||'',name:normalize(r.nama),cluster:normalize(r.cluster),pkg:canonicalPackageName(r.paket),sales:salesById[r.sales_id]?normalizeSalesName(salesById[r.sales_id]):'',sales_id:r.sales_id||null,dateISO:efanDateOnly(r.tanggal_terpasang),date:formatDate(r.tanggal_terpasang),installed:normalize(r.status)==='TERPASANG',status:r.status||'',createdAt:r.created_at||null,submitDateISO:r.created_at?efanDateOnly(r.created_at):''}}
 async function loadCustomers(showError=true){try{await loadSales();initWebPush();const data=await api('customers?select=id,cid_pelanggan,nama,cluster,paket,tanggal_terpasang,sales_id,status,created_at,updated_at&order=created_at.desc&limit=5000');customers=(data||[]).map(mapCustomer);window.customers=customers;dataSource='supabase';try{localStorage.setItem('reportTimEfanCustomers',JSON.stringify(customers))}catch(_){}await loadBillingRecords();render();if(typeof renderSaQuarter==='function')renderSaQuarter();if(typeof renderEfanV10Report==='function')renderEfanV10Report();setSyncBadge('✓ Terhubung ke Supabase')}catch(e){dataSource='local';try{customers=JSON.parse(localStorage.getItem('reportTimEfanCustomers')||'[]');customers=Array.isArray(customers)?customers.map(x=>({...x,sales:normalizeSalesName(x.sales)})):[];window.customers=customers}catch(_){customers=[]}try{billingRecords=JSON.parse(localStorage.getItem('reportTimEfanBillingRecords')||'{}')||{}}catch(_){billingRecords={}}window.billingRecords=billingRecords;render();if(typeof renderSaQuarter==='function')renderSaQuarter();if(typeof renderEfanV10Report==='function')renderEfanV10Report();setSyncBadge('⚠ Supabase tidak dapat diakses');if(showError)console.error(e)}}
 function setSyncBadge(text){let el=document.getElementById('syncStatus');if(!el){el=document.createElement('div');el.id='syncStatus';el.style.cssText='position:fixed;right:12px;bottom:76px;z-index:30;padding:7px 10px;border-radius:999px;background:#eef2ff;color:#3949ab;font-size:11px;font-weight:700;box-shadow:0 3px 12px #0001';document.body.appendChild(el)}el.textContent=text}
 async function loadTargetRemote(){try{const d=await api('team_settings?select=target_closing&limit=1');if(d?.[0]?.target_closing!=null)document.getElementById('target').value=d[0].target_closing}catch(_){try{const t=localStorage.getItem('reportTimEfanTarget');if(t!=null)document.getElementById('target').value=t}catch(e){}}}
@@ -689,10 +698,10 @@ function parseFabSabrina(text){
 function detectPackageFromProduct(product){
  const p=normalize(product).replace(/\s+/g,' ');
  const maps=[
-  ['MYGAMER P1',['MYGAMER P1','PLATINUM 1G','PLATINUM1G']],
-  ['MYGAMER D750',['MYGAMER D750','DIAMOND 750','DIAMOND750']],
-  ['MYGAMER G500',['MYGAMER G500','GOLD 600','GOLD600']],
-  ['MYGAMER S250',['MYGAMER S250','SILVER 250','SILVER250']],
+  ['MYGAMER P1',['MYGAMER P1','P1','PLATINUM 1G','PLATINUM1G','MG PLATINUM']],
+  ['MYGAMER D750',['MYGAMER D750','D750','DIAMOND 750','DIAMOND750','MG DIAMOND']],
+  ['MYGAMER G500',['MYGAMER G500','G500','GOLD 500','GOLD500','GOLD 600','GOLD600','MG GOLD']],
+  ['MYGAMER S250',['MYGAMER S250','S250','SILVER 250','SILVER250','MG SILVER']],
   ['ULTRA1GB',['ULTRA1GB','ULTRA 1GB','ULTRA1 GB','ULTRA 1 G']],
   ['WONDER750',['WONDER750','WONDER 750']],
   ['PRIME500',['PRIME500','PRIME 500']],
@@ -924,7 +933,7 @@ renderSaQuarter();
     const sales={},packs={};
     data.forEach(x=>{
       const s=normalizeSalesName(x.sales||"TANPA SALES");
-      const p=String(x.pkg||"TANPA PAKET").toLocaleUpperCase("id-ID").trim();
+      const p=canonicalPackageName(x.pkg||"TANPA PAKET");
       sales[s]=(sales[s]||0)+1;
       packs[p]=(packs[p]||0)+1;
     });
@@ -1067,4 +1076,17 @@ window.addEventListener("unhandledrejection", function(e){
 })();
 </script>
 
+
+<script>
+/* v27.7 report package canonicalization */
+(function(){
+  function fix(){
+    if(!Array.isArray(window.customers)) return;
+    window.customers.forEach(function(x){ if(x) x.pkg=canonicalPackageName(x.pkg); });
+    if(typeof customers!=="undefined") customers=window.customers;
+  }
+  fix();
+  document.addEventListener("DOMContentLoaded",fix);
+})();
+</script>
 </body></html>
